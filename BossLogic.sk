@@ -1,0 +1,46 @@
+function Boss_Init(entity: entity, id: string, name: string, hp: number, barColor: color):
+    set scoreboard tags of {_entity} to "boss"
+    set {boss::%{_id}%} to {_entity}
+    set {boss::%{_id}%::uuid} to uuid of {_entity}
+    
+    # Thêm vào danh sách active để chạy loop update bar
+    if {active_bosses::*} does not contain {_id}:
+        add {_id} to {active_bosses::*}
+
+    # --- Setup Entity Stats ---
+    # Gán tag để nhận diện ngược lại từ Entity -> ID nếu cần
+    add "custom_boss" to scoreboard tags of {_entity}
+    add "%{_id}%" to scoreboard tags of {_entity}
+    
+    set max health of {_entity} to {_hp}
+    set health of {_entity} to {_hp}
+    set custom name of {_entity} to formatted {_name}
+
+    # --- Setup BossBar ---
+    set {_barID} to "bossbar.%{_id}%"
+    # Tạo bossbar với ID tương ứng
+    set {boss::%{_id}%::bar} to bossbar named {_barID} with title formatted {_name} with color {_barColor} with style segmented 10 with progress 100
+
+    add all players to {boss::%{_id}%::bar}
+
+function Boss_ReduceCooldown(id: string, cd.index: integer, multiplier: number = 1):
+    if {boss::%{_id}%::cooldown%{_cd.index}%} is set:
+        remove {_multiplier} from {boss::%{_id}%::cooldown%{_cd.index}%}
+
+function Boss_Cleanup(id: string):
+    delete bossbar {boss::%{_id}%::bar}
+    remove {_id} from {active_bosses::*}
+    delete {boss::%{_id}%::*}
+
+every 1 tick:
+    loop {active_bosses::*}:
+        set {_id} to loop-value
+        set {_entity} to {boss::%{_id}%}
+
+        if {_entity} is alive:    
+            set {_prog} to (health of {_entity} / max health of {_entity}) * 100
+            set bar progress of {boss::%{_id}%::bar} to {_prog}
+            
+            add all players to {boss::%{_id}%::bar}
+        else:
+            Boss_Cleanup({_id})
