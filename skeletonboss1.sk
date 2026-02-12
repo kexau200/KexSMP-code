@@ -1,0 +1,357 @@
+on server start:
+    set {sb1.is.boss} to false
+
+on spawn of skeleton:
+    chance of 1%:
+        set event-entity's scoreboard tags to "special"
+
+command /truesb1:
+    permission: op
+    trigger:
+        set {sb1.canspawn} to true
+
+command /falsesb1:
+    permission: op
+    trigger:
+        set {sb1.canspawn} to false
+
+command /idle1sb1:
+    permission: op
+    trigger:
+        heal {sb1} by 25
+        broadcast "&8Skeleton Boss I &acảm thấy quá chán, hắn tự hồi đầy máu cho bản thân!"
+
+command /idle2sb1:
+    permission: op
+    trigger:
+        loop all skeletons:
+            if loop-entity's custom name is "&8Skeleton Boss I":
+                delete loop-entity
+                broadcast "&8Skeleton Boss I &acảm thấy quá chán, hắn tự biến mất khỏi thế giới!"
+        
+                execute console command "forceload remove %{sb1.x}-33% %{sb1.z}-33% %{sb1.x}+33% %{sb1.z}+33%"
+                execute console command "/scoreboard players remove count_sb1 count_boss 1"
+                set {sb1.is.boss} to false
+                delete bossbar named "sb1-bar"
+                delete {sb1}
+
+command /rampagesb1:
+    permission: op
+    trigger:
+        loop all skeletons:
+            if loop-entity's custom name is "&8Skeleton Boss I":
+                delete loop-entity
+                broadcast "&8Skeleton Boss I &ađã giết được tổng cộng 25 mạng, hắn cảm thấy game quá dễ và tự biến mất khỏi thế giới!"
+        
+                execute console command "forceload remove %{sb1.x}-33% %{sb1.z}-33% %{sb1.x}+33% %{sb1.z}+33%"
+                execute console command "/scoreboard players remove count_sb1 count_boss 1"
+                set {sb1.is.boss} to false
+                delete bossbar named "sb1-bar"
+                delete {sb1}
+
+
+#Triệu hồi zombie boss1, chỉ có một con với số lương 1 con:
+on damage of skeleton by player:
+    execute console command "/execute if score count_sb1 count_boss matches ..0 run truesb1"
+    execute console command "/execute if score count_sb1 count_boss matches 1.. run falsesb1"
+    if {sb1.canspawn} is true:    
+        if victim has the scoreboard tag "special":
+            #spawn
+            make 50 of flame at victim
+            play sound "entity.ender_dragon.growl" with volume 2 at the victim
+            strike lightning at victim
+
+            set {sb1} to victim
+            set {sb1uuid} to uuid of victim
+            set {sb1.is.boss} to true
+            set {sb1.cooldown1} to a random integer between 5 and 8
+            set {sb1.cooldown2} to 0
+            set {sb1.cooldown3} to 3
+
+            set {sb1.using.skill} to false
+            set {sb1.pulling} to false
+            set {sb1.time.water} to 0
+
+            #set {sb1}'s held item to bow
+            set {sb1.can.heal} to false
+
+            set {sb1.bar} to bossbar named "sb1-bar" with title "&8Skeleton Boss I &e[ %{sb1.x}%, %{sb1.z}%]" with color silver with style segmented 10 with progress 100
+            add all players to {sb1.bar}
+
+            broadcast "&cAi đó đã triệu hồi &8Skeleton Boss I&c!"
+            set victim's custom name to "&8Skeleton Boss I"
+
+            execute console command "/scoreboard players add count_sb1 count_boss 1"
+            execute console command "/scoreboard players set count_sb1 boss_rampage 0"
+            add "sb1" to the scoreboard tags of victim
+            execute console command "/scoreboard players set count_sb1 idle_time 0"
+                  
+            #HP
+            set victim's max health to 25
+            set victim's health to 25
+
+            #equipment
+            equip victim with chainmail helmet
+            equip victim with chainmail chestplate
+            equip victim with chainmail leggings
+            equip victim with chainmail boots
+            set victim's held item to bow
+
+every 1 tick:
+    if {sb1.is.boss} is true:
+        set bar progress of {sb1.bar} to {sb1}'s health *100/{sb1}'s max health
+        add all players to {sb1.bar}
+
+every 20 tick:
+    if {sb1.is.boss} is true:
+        #Không phải chiêu
+        set bar title of {sb1.bar} to "&8Skeleton Boss I &e[ %{sb1.x}%, %{sb1.z}%]"
+
+        execute console command "dochunkload"
+        execute console command "scoreboard players add count_sb1 idle_time 1"
+        execute console command "execute if score count_sb1 idle_time matches 30 run idle1sb1"
+        execute console command "execute if score count_sb1 idle_time matches 300.. run idle2sb1"
+        execute console command "execute if score count_sb1 boss_rampage matches 25.. run rampagesb1"
+
+        #Chiêu
+        set {sb1.cooldown1} to {sb1.cooldown1} - 1
+        if {sb1.using.skill} is false:
+            if {sb1.cooldown1} <= 0:
+                if {sb1}'s target is set:
+                    set {sb1.cooldown1} to a random integer between 5 and 8
+                    set {sb1.using.skill} to true
+                    loop 10 times:
+                        set {sb1.using.skill} to true
+                        set {_sb1loc} to location of {sb1}
+                        set {_ploc} to location of {sb1}'s target
+                        set {_v} to vector between {_sb1loc} and {_ploc}
+                        set x of {_v} to x of {_v} + random number between -1 and 1
+                        set y of {_v} to y of {_v} + random number between -1 and 1
+                        set z of {_v} to z of {_v} + random number between -1 and 1
+                        make {sb1} shoot an arrow at speed 0.25 {_v}
+                        wait 2 ticks
+                    set {sb1.using.skill} to false
+        set {sb1.cooldown2} to {sb1.cooldown2} - 1
+        if {sb1.using.skill} is false:
+            if {sb1.cooldown2} <= 0:
+                set {_sb1loc} to location of {sb1}
+                set {_dummy} to {sb1}
+                loop all players:
+                    if distance between loop-player and {_sb1loc} <= 8:
+                        if loop-player is not {sb1}'s target:
+                            set {_ploc} to location of loop-player
+                            set {_v} to vector between {_ploc} and {_sb1loc}
+                            set {_v.n} to vector between {_sb1loc} and {_ploc}
+                            set y of {_v} to 0
+                            push {sb1} along {_v} with speed 1.5
+                            push {sb1} up with speed 0.5
+                            set {sb1.cooldown2} to 10
+                            make {sb1} shoot an arrow at speed 0.3 {_v.n}
+                            set {sb1} to {_dummy}
+                            stop loop
+                        
+        set {sb1.cooldown3} to {sb1.cooldown3} - 1
+        if {sb1.using.skill} is false:
+            if {sb1.cooldown3} <= 0:
+                loop all players:
+                    set {_sb1loc} to location of {sb1}
+                    if distance between loop-player and {_sb1loc} <= 20:
+                        set {sb1.using.skill} to true
+                        set {sb1.cooldown3} to a random integer between 25 and 30
+                        set {_ploc} to location of loop-player
+                        set {_v} to vector between {_sb1loc} and {_ploc}
+                        set y of {_v} to 0
+                        set {_v.length} to the vector length of {_v}
+
+                        push {sb1} up with speed 1.5
+                        push {sb1} along vector {_v} with speed {_v.length}/7
+                        set {_per} to true
+                        wait 1 tick
+                        set {sb1.using.skill} to false
+
+                wait 14 ticks
+                loop all players:
+                    if distance between loop-player and {_sb1loc} <= 20:
+                        set {sb1.using.skill} to true
+                        loop 10 times:
+                            set {_sb1loc} to location of {sb1}
+                            set {_ploc} to location of loop-player
+                            set {_v} to vector between {_sb1loc} and {_ploc}
+                            set x of {_v} to x of {_v} + random number between -1.5 and 1.5
+                            set y of {_v} to y of {_v} + random number between -1.5 and 1.5
+                            set z of {_v} to z of {_v} + random number between -1.5 and 1.5
+                            make {sb1} shoot an arrow at speed 0.2 {_v}
+                        wait 1 tick
+                        set {sb1.using.skill} to false
+
+                if {_per} is true:
+                    wait 30 ticks
+                    set {sb1.using.skill} to true
+                    create an explosion of force 0.5 at {sb1}
+                            
+                    set {_angle} to a random number between 0 and 36
+                    loop 10 times:
+                        set {_angle} to {_angle} + 36
+                        set {_vx} to cos({_angle})
+                        set {_vz} to sin({_angle})
+                        set {_v.bomb} to vector({_vx}, 2.5, {_vz})
+
+                        make {sb1} shoot an arrow at speed 0.3 {_v.bomb}:
+                            set event-projectile's custom name to "dynamite"
+                            hide event-projectile's custom name
+                        
+                    set {_per} to false
+                    wait 1 tick
+                    set {sb1.using.skill} to false
+
+on shoot:
+    if shooter's custom name is "&8Skeleton Boss I":
+        set {sb1} to shooter
+        if {sb1.using.skill} is false:
+            set {_ran} to a random integer between 1 and 10
+            if {_ran} = 4:
+                set event-projectile's custom name to "BOMB"
+            else if {_ran} >= 9:
+                set event-projectile's custom name to "grab"
+            else if {_ran} <= 2:
+                set event-projectile's custom name to "heal"
+            else:
+                chance of 50%:
+                    set event-projectile's custom name to "fire"
+                
+            #hide event-projectile's custom name
+
+on projectile hit:
+    if event-projectile's custom name is "BOMB":
+        if victim is a player:
+            create an explosion of force 0.5 at event-projectile
+            delete event-projectile
+        if victim is not a player:
+            show event-projectile's custom name
+            loop 10 times:
+                set event-projectile's custom name to "&4BOMB"
+                play sound "entity.experience_orb.pickup" with volume 5 at event-projectile
+                wait 1 ticks
+                set event-projectile's custom name to "BOMB"
+                wait 1 ticks
+            create an explosion of force 5 at event-projectile
+            delete event-projectile
+    if event-projectile's custom name is "dynamite":
+        if victim is a player:
+            create an explosion of force 0.25 at event-projectile
+            delete event-projectile
+        if victim is not a player:
+            show event-projectile's custom name
+            loop 10 times:
+                set event-projectile's custom name to "&4dynamite"
+                play sound "block.note_block.hat" with volume 5 at event-projectile
+                wait 2 ticks
+                set event-projectile's custom name to "dynamite"
+                wait 2 ticks
+            create an explosion of force 2 at event-projectile
+            delete event-projectile
+
+    if event-projectile's custom name is "grab":
+        if victim is a player:
+            teleport {sb1} to victim
+            set {sb1}'s target to victim
+            play sound "block.iron_trapdoor.close" with volume 3 at the victim
+            set {sb1}'s held item to stone sword
+            set {sb1.can.heal} to true
+            set {sb1.using.skill} to true
+            set {sb1.cooldown1} to {sb1.cooldown1} + 4
+            set {sb1.cooldown2} to {sb1.cooldown2} + 4
+            set {sb1.cooldown3} to {sb1.cooldown3} + 4
+            apply speed potion of tier 2 to {sb1} for 5 seconds
+            wait 100 ticks
+            set {sb1}'s held item to bow
+            set {sb1.can.heal} to false
+            set {sb1.using.skill} to false
+
+        if victim is not a player:
+            set {_grab} to location of event-projectile
+            set {_pulling} to true
+            set {_break} to 0
+            push {sb1} up with speed 0.5
+            while {_pulling} is true:
+                set {_loc} to location of {sb1}
+                if y-coord of {_loc} - y-coord of {_grab} < -0.5:
+                    push {sb1} up with speed 0.2
+                pull {sb1} towards {_grab} with speed 0.3
+                set {_break} to {_break} + 1
+                if distance between {sb1} and event-projectile < 1:
+                    set {_pulling} to false
+                    delete event-projectile
+                if {_break} > 100:
+                    set {_pulling} to false
+                    delete event-projectile
+                wait 1 tick
+    if event-projectile's custom name is "fire":
+        ignite victim for 10 seconds
+    
+    if event-projectile's custom name is "heal":
+        if victim is a player:
+            if {sb1}'s health > 0:
+                heal {sb1} by 5
+                broadcast "&8Skeleton Boss I &avừa sử dụng tên để hấp thụ sinh lực!"
+
+on death of player:
+    if attacker's custom name is "&8Skeleton Boss I":
+        execute console command "/scoreboard players add count_sb1 boss_rampage 1"
+        wait 100 ticks
+        set {sb1.using.skill} to false
+
+on damage of player:
+    if attacker's custom name is "&8Skeleton Boss I":
+        execute console command "/scoreboard players set count_sb1 idle_time 0"
+        set {sb1} to attacker
+        if {sb1.can.heal} is true:
+            if attacker's health > 0:
+                heal attacker by 5
+                broadcast "&8Skeleton Boss I &avừa sử dụng kiếm để hấp thụ sinh lực!"   
+        else:
+            set {sb1.using.skill} to false
+
+on damage of skeleton:
+    if victim's custom name is "&8Skeleton Boss I":
+        if attacker is not a player:
+            cancel event #miễn nhiễm sát thương gián tiếps
+        else:
+            set {sb1} to victim
+            execute console command "/scoreboard players set count_sb1 idle_time 0"
+            chance of 50%:
+                if distance between victim and attacker <= 10:
+                    set victim's target to attacker
+
+on death of skeleton:
+    if victim's custom name is "&8Skeleton Boss I":
+        broadcast "&a%attacker% đã đánh bại &8Skeleton Boss I&a!"
+
+        execute console command "forceload remove %{sb1.x}-33% %{sb1.z}-33% %{sb1.x}+33% %{sb1.z}+33%"
+        execute console command "/scoreboard players remove count_sb1 count_boss 1"
+        set {sb1.is.boss} to false
+        delete {sb1}
+        delete bossbar named "sb1-bar"
+
+        drop {defuser}
+
+on skeleton transforming:
+    if event-entity's custom name is "&8Skeleton Boss I":
+        broadcast "&8Skeleton Boss I &abiến mất vào trong tuyết mà không để lại dấu vết!"
+        
+        execute console command "forceload remove %{sb1.x}-33% %{sb1.z}-33% %{sb1.x}+33% %{sb1.z}+33%"
+        execute console command "/scoreboard players remove count_sb1 count_boss 1"
+        set {sb1.is.boss} to false
+        delete bossbar named "sb1-bar"
+        delete {sb1}
+        delete event-entity
+        cancel event
+
+on vehicle enter:
+    if event-entity's custom name is "&8Skeleton Boss I":
+        cancel event
+
+
+
+
+

@@ -1,0 +1,3 @@
+on right click on iron golem:
+    if player's name is "TAvaElleFanning":
+        set passengers of event-entity to player

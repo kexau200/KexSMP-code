@@ -1,0 +1,509 @@
+#Apply Attribute Modifiers to Items
+command /testing:
+    permission: op
+    trigger:
+        #shooter
+        set {shooter} to a wooden_shovel named "&e&lwooden_shooter" with lore "&2súng bắn chể em" and "&ahàng gia truyền của gia tộc đào đất"
+        apply attribute modifier to {shooter}:
+            attribute: attack damage
+            id: "custom:wooden_shooter"
+            slot: mainhand_slot_group
+            amount: 7
+            operation: add_number
+        apply attribute modifier to {shooter}:
+            attribute: attack speed
+            id: "custom:wooden_shooter"
+            slot: mainhand_slot_group
+            amount: -3
+            operation: add_number
+        give player 1 of {shooter}
+
+        loop {custom.item::*}:
+            give player 1 of loop-value
+
+function drop_loot(loc: location):
+    set {_lootbox} to a rabbit hide named "&e&lLoot Box"
+    set {_color.list::*} to "", "white_", "orange_", "magenta_", "light_blue_", "yellow_", "lime_", "pink_", "gray_", "light_gray_", "cyan_", "purple_", "blue_", "brown_", "green_", "red_", "black_"
+    set {_color} to a random element out of {_color.list::*}
+    set item model of {_lootbox} to "minecraft:%{_color}%bundle"
+    drop 1 of {_lootbox} at {_loc}
+
+on right click:
+    if player is holding rabbit hide in main hand:
+        set {_m} to player's main hand
+    else if player is holding rabbit hide in off hand:
+        set {_m} to player's off hand
+    if {_m}'s name is "&e&lLoot Box":
+        remove 1 of {_m} from player
+        set {_i2} to a feather named "&rTickling Feather"
+        set lore of {_i2} to "poke và tickle tụi trader và chúng nó sẽ restock"
+        drop a random integer between 1 and 2 of {_i2} at player
+        set {_chance} to a random integer between 1 and 10
+        if {_chance} <= 3:
+            set {_i1} to a paper named "&bScroll of Speed"
+            set item model of {_i1} to "minecraft:flow_banner_pattern"
+        else if {_chance} <= 6:
+            set {_i1} to a paper named "&cScroll of Attack"
+            set item model of {_i1} to "minecraft:mojang_banner_pattern"
+        else if {_chance} <= 8:
+            drop a random integer between 1 and 3 of {_i2} at player
+            stop
+        else if {_chance} = 9:
+            set {_i1} to an enchanted book named "&a&lMagical Book"
+            set {_chance} to a random integer between 1 and 4
+            if {_chance} = 1:
+                set lore of {_i1} to "&r&eadditional enchantment: &c&ofire aspect"
+            else if {_chance} = 2:
+                set lore of {_i1} to "&r&eadditional enchantment: &b&osweeping edge"
+            else if {_chance} = 3:
+                set lore of {_i1} to "&r&eadditional enchantment: <#FF9B7D>&oflame"
+            else:
+                set lore of {_i1} to "&r&eadditional enchantment: &6&oinfinity"
+        else:
+            set {_i1} to a book
+            set {_chance} to a random integer between 1 and 5
+            if {_chance} = 1:
+                apply attribute modifier to {_i1}:
+                    id: "custom:def"
+                    attribute: armor
+                    amount: 5
+                    slot: offhand_slot_group
+                    operation: add_number
+                set {_name} to "&0&lBrick of the N"
+                set {_model} to "minecraft:netherite_ingot"
+            else if {_chance} = 2:
+                apply attribute modifier to {_i1}:
+                    id: "custom:damage"
+                    attribute: attack damage
+                    amount: 3
+                    slot: offhand_slot_group
+                    operation: add_number
+                set {_name} to "<#FFAF38>&lBurning Hand"
+                set {_model} to "minecraft:blaze_powder"
+            else if {_chance} = 3:
+                apply attribute modifier to {_i1}:
+                    id: "custom:break_speed"
+                    attribute: block break speed
+                    amount: 1
+                    slot: offhand_slot_group
+                    operation: add_number
+                set {_name} to "<#963838>&lConstruction Worker's Secret"
+                set {_model} to "minecraft:netherite_upgrade_smithing_template"
+            else if {_chance} = 4:
+                apply attribute modifier to {_i1}:
+                    id: "custom:health"
+                    attribute: max health
+                    amount: 10
+                    slot: offhand_slot_group
+                    operation: add_number
+                set {_name} to "<#FF8C9C>&lHealth Elixir"
+                set {_model} to "minecraft:dragon_breath"
+            else:
+                apply attribute modifier to {_i1}:
+                    id: "custom:movement"
+                    attribute: movement speed
+                    amount: 0.05
+                    slot: offhand_slot_group
+                    operation: add_number
+                set {_name} to "&b&lExciter"
+                set {_model} to "minecraft:nether_star"
+            set {_i1}'s name to {_name}
+            set item model of {_i1} to {_model}
+        drop 1 of {_i1} at player
+
+command /customitemadd <string> [<string>]:
+    permission: op
+    trigger:
+        set {_m} to player's held item
+        if arg-2 is not set:
+            if {custom.item::*} does not contain {_m}:
+                if {%arg-1%} is not set:
+                    set {%arg-1%} to player's held item
+                    add {%arg-1%} to {custom.item::*}
+                    add "%{%arg-1%}%|%arg-1%" to {custom.item.log::*}
+                    send "&aĐã thêm item thành công!" to player
+                else:
+                    send "&cBạn đã đặt biến ở đâu đó rồi!" to player
+            else:
+                send "&cItem này đã được thêm sẵn rồi!" to player
+        else:
+            loop {custom.item::*}:
+                if {%arg-1%} is loop-value:
+                    remove loop-value from {custom.item::*}
+                    add "%{%arg-1%}%|||&cdeleted" to {custom.item.log::*}
+            set {%arg-1%} to player's held item
+            add {%arg-1%} to {custom.item::*}
+            add "%{%arg-1%}%|&e%arg-1%" to {custom.item.log::*}
+            send "&aĐã thêm item thành công!" to player
+
+command /customitemrename <string> [<string>]:
+    permission: op
+    trigger:
+        set {_m} to player's held item
+        if {custom.item::*} contain {_m}:
+            if arg-2 is not set:
+                if {%arg-1%} is not set:
+                    set {%arg-1%} to player's held item
+                    send "&aĐã đổi tên biến của item thành công!" to player
+                    add "%{%arg-1%}%|&e%arg-1%" to {custom.item.log::*}
+                else:
+                    send "&cBạn đã đặt biến này ở đâu đó rồi!" to player
+            else:
+                loop {custom.item::*}:
+                    if {%arg-1%} is loop-value:
+                        remove loop-value from {custom.item::*}
+                        add "%{%arg-1%}%|||&cdeleted" to {custom.item.log::*}
+                set {%arg-1%} to player's held item
+                send "&aĐã đổi tên biến của item thành công!" to player
+                add "%{%arg-1%}%|%arg-1%" to {custom.item.log::*}
+        else:
+            send "&cItem này không có trong danh sách!" to player
+
+command /customitemremove:
+    permission: op
+    trigger:
+        set {_m} to player's held item
+        if {custom.item::*} contain {_m}:
+            remove {_m} from {custom.item::*}
+            send "&aĐã loại bỏ item thành công!" to player
+            add "%{_m}%|||&cdeleted" to {custom.item.log::*}
+        else:
+            send "&cItem này không có trong danh sách!" to player
+
+command /customitemlist:
+    permission: op
+    trigger:
+        send "&eItem list bao gồm:" to player
+        loop {custom.item::*}:
+            send "%loop-value%" to player
+
+command /customitemlog [<integer>]:
+    permission: op
+    trigger:
+        send "&eItem log:" to player
+        if arg-1 is not set:
+            loop {custom.item.log::*}:
+                send "%loop-value%" to player
+        else:
+            loop round(arg-1) times:
+                remove {custom.item.log::1} from {custom.item.log::*}
+            loop {custom.item.log::*}:
+                send "%loop-value%" to player
+
+command /customitemgive <string> [<player>]:
+    permission: op
+    trigger:
+        if arg-2 is not set:
+            give player 1 of {%arg-1%}
+        else:
+            if arg-2 is online:
+                give arg-2 1 of {%arg-1%}
+                send "&eĐã give item thành công!" to player
+
+on join:
+    while {%event-player%.summoner.cooldown} > 0:
+        wait 1 seconds
+        set {%event-player%.summoner.cooldown} to {%event-player%.summoner.cooldown} -1
+        if {%event-player%.summoner.cooldown} = 0:
+            loop all spiders, cave spiders and drowneds:
+                if loop-entity's custom name is "%{_name}%":
+                    delete loop-entity
+
+on damage of living entity:
+    if attacker is holding stone axe in main hand:
+        set {_m} to attacker's held item
+        if {_m}'s name is "&5&lSummoner":
+            if victim is not {%attacker%.summoner.target}:
+                set {%attacker%.summoner.target} to victim
+                send action bar "&e&lĐÃ ĐỔI MỤC TIÊU THÀNH CÔNG" to attacker
+            if {%attacker%.summoner.cooldown} is not set:
+                set {%attacker%.summoner.cooldown} to 0
+
+on right click:
+    if event-player is holding stone axe in main hand:
+        set {_m} to event-player's held item
+        if {_m}'s name is "&5&lSummoner":
+            if {%event-player%.summoner.target} is alive:
+                if {%event-player%.summoner.cooldown} <= 0:
+                    set {_name} to event-player's name
+                    send action bar "&e&lĐANG TRIỆU HỘI ĐỆ..." to event-player
+                    set {%event-player%.summoner.cooldown} to 61
+                    wait 2 seconds
+                    repair event-player's tool by -10
+                    if durability of event-player's tool = 0:
+                        remove event-player's tool from event-player
+                    
+                    set {_pl.loc} to location of {%event-player%.summoner.target}
+                    set {_x} to the x-coord of {_pl.loc}
+                    set {_y} to the y-coord of {_pl.loc}
+                    set {_z} to the z-coord of {_pl.loc}
+                    set {_spb.minion.per.pl} to 0
+                    if block at {_pl.loc} is not water:
+                        while {_spb.minion.per.pl} < 5:
+                            set {_spb.minion.loc.check} to 0
+                            while {_spb.minion.loc.check} < 25:
+                                set {_pl.spawn} to {_pl.loc}
+                                set x-coord of {_pl.spawn} to {_x} + a random number between -5 and 5
+                                set y-coord of {_pl.spawn} to {_y} + a random number between -2 and 2
+                                set z-coord of {_pl.spawn} to {_z} + a random number between -5 and 5
+                                set {_spb.minion.loc.check} to {_spb.minion.loc.check} + 1
+                                if block at {_pl.spawn} is air:
+                                    chance of 50%:
+                                        spawn a spider at {_pl.spawn}:
+                                            add "summoned" to scoreboard tags of entity
+                                            apply infinite glowing potion of tier 1 without any particles to entity
+                                            set entity's custom name to "%{_name}%"
+                                    else:
+                                        spawn a cave spider at {_pl.spawn}:
+                                            add "summoned" to scoreboard tags of entity
+                                            apply infinite glowing potion of tier 1 without any particles to entity
+                                            set entity's custom name to "%{_name}%"
+                                    set {_spb.minion.loc.check} to 25
+                                    set {_spb.minion.per.pl} to {_spb.minion.per.pl} + 1
+                                else if {_spb.minion.loc.check} >= 25:
+                                    set {_spb.minion.loc.check} to 25
+                                    set {_spb.minion.per.pl} to {_spb.minion.per.pl} + 1
+                    else:
+                        while {_spb.minion.per.pl} < 5:
+                            set {_spb.minion.loc.check} to 0
+                            while {_spb.minion.loc.check} < 25:
+                                set {_pl.spawn} to {_pl.loc}
+                                set x-coord of {_pl.spawn} to {_x} + a random number between -5 and 5
+                                set y-coord of {_pl.spawn} to {_y} + a random number between -2 and 2
+                                set z-coord of {_pl.spawn} to {_z} + a random number between -5 and 5
+                                set {_spb.minion.loc.check} to {_spb.minion.loc.check} + 1
+                                if block at {_pl.spawn} is water:
+                                    spawn a drowned at {_pl.spawn}:
+                                        add "summoned" to scoreboard tags of entity
+                                        apply infinite glowing potion of tier 1 without any particles to entity
+                                        set entity's custom name to "%{_name}%"
+                                    set {_spb.minion.loc.check} to 25
+                                    set {_spb.minion.per.pl} to {_spb.minion.per.pl} + 1
+                                else if {_spb.minion.loc.check} >= 25:
+                                    set {_spb.minion.loc.check} to 25
+                                    set {_spb.minion.per.pl} to {_spb.minion.per.pl} + 1
+                    set {_exist.time} to 30
+                    wait 1 tick
+                    loop all spiders, cave spiders and drowneds:
+                        if loop-entity's custom name is "%{_name}%":
+                            delete loop-entity's held item
+                            remove "special" from scoreboard tags of loop-entity
+                            set loop-entity's target to {%event-player%.summoner.target}
+                    wait 19 tick
+                    while {%event-player%.summoner.cooldown} > 0:
+                        wait 1 seconds
+                        set {_exist.time} to {_exist.time} - 1
+                        if {_exist.time} = 0:
+                            loop all spiders, cave spiders and drowneds:
+                                if loop-entity's custom name is "%{_name}%":
+                                    delete loop-entity
+                        set {%event-player%.summoner.cooldown} to {%event-player%.summoner.cooldown} -1
+                else:
+                    send action bar "&c&lHãy đợi %{%event-player%.summoner.cooldown}% giây nữa để có thể gọi đệ lại!"
+            else:
+                send action bar "&c&lBẠN CHƯA CHỌN MỤC TIÊU!"
+
+on damage:
+    if {%attacker%.summoner.cooldown} > 0:
+        loop all spiders, cave spiders and drowneds:
+            if loop-entity's custom name is "%attacker%":
+                set loop-entity's target to victim
+
+on death of spiders, cave spiders or drowneds:
+    if victim doesn't have the scoreboard tag "summoned":
+        if attacker is holding stone axe in main hand:
+            set {_m} to attacker's held item
+            if {_m}'s name is "&5&lSummoner":
+                repair attacker's tool by 5
+
+on target:
+    if event-entity's custom name is "%{target}%":
+        cancel event
+
+on player shear entity:
+    if event-entity is a sheep:
+        if event-player is holding shears in main hand:
+            set {_shears} to event-player's held item
+            if {_shears}'s name is "&e&lDefuser":
+                repair player's tool by 10
+
+on break:
+    if event-block's age is event-block's max age:
+        if event-block is wheat, potatoes, carrot or beetroot:
+            if event-player is holding iron hoe in main hand:
+                set {_m} to event-player's held item
+                if {_m}'s name is "&e&lRipping Hook":
+                    set {_loc} to location of event-block
+                    set {_loc2} to location of event-block
+                    set x-coord of {_loc} to x-coord of {_loc} + 25
+                    set z-coord of {_loc} to z-coord of {_loc} + 25
+                    set y-coord of {_loc} to y-coord of {_loc} + 1
+                    set x-coord of {_loc2} to x-coord of {_loc2} - 25
+                    set z-coord of {_loc2} to z-coord of {_loc2} - 25
+                    set y-coord of {_loc2} to y-coord of {_loc2} - 1
+                    loop blocks within {_loc} and {_loc2}:
+                        if loop-block's age is loop-block's max age:
+                            if loop-block is wheat, potatoes, carrot or beetroot: 
+                                break loop-block
+                                chance of 1%:
+                                    repair player's tool by -1
+    if event-player is holding iron hoe in main hand:
+        set {_m} to event-player's held item
+        if {_m}'s name is "&e&lRipping Hook":
+            if durability of player's tool = 0:
+                remove player's tool from player
+
+on death of creeper:
+    if victim is charged:
+        if attacker is holding iron hoe in main hand:
+            set {_m} to attacker's held item
+            if {_m}'s name is "&e&lRipping Hook":
+                repair attacker's tool by 250
+
+on right click on cobweb:
+    if event-player is holding iron hoe in main hand:
+        set {_m} to event-player's held item
+        if {_m}'s name is "&e&lRipping Hook":
+            break event-block
+            repair player's tool by -5
+            if durability of player's tool = 0:
+                remove player's tool from player
+
+function shoot():                                                                
+    make {shooter.player} shoot a snowball at speed 20:
+        set event-projectile's scoreboard tags to "dirt_bullet"
+        set visibility of event-projectile to false
+        set gravity of event-projectile to off
+
+on shoot:
+    if event-projectile has scoreboard tags "dirt_bullet":
+        wait 20 ticks
+        if event-projectile is alive:
+            broadcast "&ebắn gà vl!?"
+            delete event-projectile
+
+on projectile hit:
+    if event-projectile has scoreboard tags "dirt_bullet":
+        if victim is an entity:
+            broadcast "&cheadshot! &eCon lợn này tuổi gì ăn tao?"
+            damage victim by 4
+        else:
+            broadcast "&ebắn gà vl!?"
+        
+on damage:
+    if attacker is holding a wooden shovel in main hand:
+        set {_shovel} to attacker's held item
+        if {_shovel}'s name is "&e&lwooden_shooter":
+            set durability of attacker's tool to durability of attacker's tool - 1
+            if durability of attacker's tool <= 0:
+                remove attacker's tool from attacker
+
+on right click holding a wooden shovel:
+    if event-item's name is "&e&lwooden_shooter":
+        set item cooldown of player's tool for player to 5 seconds
+        wait 5 ticks
+
+        set {_v} to vector in direction of player
+        set {_loc} to location of player
+        set y-coord of {_loc} to y-coord of {_loc} + 1.5
+        make {_loc} shoot a snowball at speed 20 {_v}:
+            set event-projectile's scoreboard tags to "dirt_bullet"
+            set visibility of event-projectile to false
+            set gravity of event-projectile to off
+
+        set durability of event-item to durability of event-item - 28
+        if event-item's durability <= 0:
+            remove event-item from player
+
+on mine of dirt:
+    if event-player is holding a wooden shovel in main hand:
+        set {_shovel} to event-player's held item
+        if {_shovel}'s name is "&e&lwooden_shooter":
+            clear drops
+            wait 1 tick
+            set durability of event-player's tool to durability of event-player's tool + 2
+
+on right click:
+    if event-player is holding enchanted book in off hand:
+        set {_off} to player's off hand
+        if {_off}'s name is "&a&lMagical Book":
+            set {_main} to player's main hand
+            set {_sword.list::*} to wooden sword, golden sword, stone sword, copper sword, iron sword, diamond sword and netherite sword
+            if {_main} is a bow:
+                if {_off}'s lore contain "flame":
+                    {_main} is not enchanted with flame
+                    enchant player's main hand with flame
+                    set {_enchanted} to true
+                else if {_off}'s lore contain "infinity":
+                    {_main} is not enchanted with infinity
+                    enchant player's main hand with infinity
+                    set {_enchanted} to true
+            else if {_sword.list::*} contain {_main}:
+                if {_off}'s lore contain "sweeping edge":
+                    {_main} is not enchanted with sweeping edge 3
+                    set {_enchant} to "sweeping edge %1 + WRandom(2, 0.1, 0.3)%" parsed as enchantment type
+                    enchant player's main hand with {_enchant}
+                    set {_enchanted} to true
+                else if {_off}'s lore contain "fire aspect":
+                    {_main} is not enchanted with fire aspect 2
+                    set {_enchant} to "fire aspect %WRandom(2, 0.1, 0.8)%" parsed as enchantment type
+                    enchant player's main hand with {_enchant}
+                    set {_enchanted} to true
+            if {_enchanted} is true:
+                delete player's off hand
+                cancel event
+                play sound "block.enchantment_table.use" to event-player
+            if {_main}'s durability is not {_main}'s max durability:
+                delete player's off hand
+                cancel event
+                repair player's tool by {_main}'s max durability
+                play sound "block.anvil.use" to event-player
+        
+on consume of carrot:
+    if item model of event-item is "minecraft:glow_ink_sac":
+        execute console command "effect clear %event-player%"
+        apply nausea potion of tier 1 to event-player for 20 seconds
+        apply darkness potion of tier 1 to event-player for 18 seconds
+        apply mining fatigue potion of tier 2 to event-player for 15 seconds
+        apply slowness potion of tier 1 to event-player for 15 seconds
+        apply hunger potion of tier 1 to event-player for 15 seconds
+        wait 15 seconds
+        apply absorption potion of tier 1 to event-player for 3 seconds
+        apply speed potion of tier 1 to event-player for 3 seconds
+        apply jump boost potion of tier 1 to event-player for 3 seconds
+        wait 3 seconds
+        execute console command "effect clear %event-player%"
+        apply speed potion of tier 1 to event-player for 60 seconds
+        apply haste potion of tier 1 to event-player for 60 seconds
+        apply strength potion of tier 1 to event-player for 60 seconds
+        apply jump boost potion of tier 1 to event-player for 60 seconds
+        apply absorption potion of tier 3 to event-player for 60 seconds
+
+on damage of player:
+    if victim is defending:
+        if victim is holding a shield in main hand:
+            set {_m} to victim's main hand
+        else if victim is holding a shield in off hand:
+            set {_m} to victim's off hand
+        if {_m}'s name is "&f&lSpikey Shield":
+            if damage cause is attack, an entity attack or sweep attack:
+                make attacker attack attacker
+                if attacker is not a player:
+                    chance of 20%:
+                        set {_held} to attacker's main hand
+                        set attacker's main hand to wooden axe
+                        wait 1 tick
+                        make attacker attack victim
+                        set attacker's main hand to {_held}
+        else if {_m}'s name is "&2&lSticky Shield":
+            if damage cause is attack, an entity attack or sweep attack:
+                apply slowness potion of tier 2 to attacker for 1 seconds
+                wait 21 tick
+                apply slowness potion of tier 1 to attacker for 4 seconds
+
+command /givelootbox <player>:
+    permission: op
+    trigger:
+        drop_loot(location of arg-1)
+
+

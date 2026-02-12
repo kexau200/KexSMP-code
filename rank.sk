@@ -1,0 +1,296 @@
+on chat:
+    set {_name} to player's name
+    set {_message} to message
+    if {haverank.list::*} doesn't contain {_name}:
+        broadcast "&7%{_name}%: %message%"
+        cancel event
+    else:
+        loop {rank::*}:
+            if {rank::%loop-value%::pl::%{_name}%} is set:
+                cancel event
+                add {rank::%loop-value%::displayer} to {_name::*}
+                add {rank::%loop-value%::chat} to {_chat::*}
+                add {_name} to {_name::*}
+                if {rank::%loop-value%::displayer::%{_name}%.special} is set:
+                    delete {_name::*}
+                    add {rank::%loop-value%::displayer::%{_name}%.special} to {_name::*}
+                if {rank::%loop-value%::chat::%{_name}%.special} is set:
+                    delete {_chat::*}
+                    if {rank::%loop-value%::chat::%{_name}%.special} is "rainbow":
+                        set {_message} to rainbow({_message})
+                    else if {rank::%loop-value%::chat::%{_name}%.special} is "pinkgra":
+                        set {_message} to pinkgra({_message})
+                    else if {rank::%loop-value%::chat::%{_name}%.special} is "chaos":
+                        set {_message} to chaos({_message})
+                add {_message} to {_chat::*}
+                
+                set {_name} to join {_name::*} using ""
+                set {_chat} to join {_chat::*} using ""
+                broadcast "%formatted {rank::%loop-value%::rankdisplay}% %formatted {_name}%&f: &f%formatted {_message}%"
+
+                stop loop
+
+on join:
+    set {_name} to player's name
+    if {haverank.list::*} doesn't contain {_name}:
+        set {_display} to "&7"
+    else:
+        loop {rank::*}:
+            if {rank::%loop-value%::pl::%{_name}%} is set:
+                add {rank::%loop-value%::displayer} to {_name::*}
+                add {_name} to {_name::*}
+                if {rank::%loop-value%::displayer::%{_name}%.special} is set:
+                    delete {_name::*}
+                    add {rank::%loop-value%::displayer::%{_name}%.special} to {_name::*}
+                set {_name} to join {_name::*} using ""
+                set {_display} to "%{rank::%loop-value%::rankdisplay}% "
+
+                stop loop
+    add {_display} to {_tab::*}
+    add {_name} to {_tab::*}
+    set {_display} to join {_tab::*} using ""
+
+    if event-player doesn't have permission "op":
+        set join message to "&a%player% &evừa lẻn vào server, &cgiết nó&e!!!"
+        while player is online:
+            set player's tablist header to "%nl%&f&o              KexSMP              %nl%%nl%&7(&e%size of players%&7/&e%max amount of players%&7)%nl%"
+
+            set player's tablist name to formatted {_display}
+
+            wait 1 seconds
+    else:
+        delete join message
+        while player is online:
+            hide player from all players
+            wait 1 second
+
+#Format rank [rankname] co the them ky hieu "&" de danh dau mau, them o cuoi de danhdau ten nguoi choi
+
+command /resetcustomchat:
+    permission: op
+    trigger:
+        set {chat.function::*} to "rainbow", "chaos" and "pinkgra"
+        send "&ađã set lại danh sách hàm tạo chat thành công!"
+
+function rainbow(text: text) :: text:
+    set {_text1::*} to split {_text} using ""
+    set {_color::1} to "#F09EA7"
+    set {_color::2} to "#F6CA94"
+    set {_color::3} to "#FAFABE"
+    set {_color::4} to "#C1EBC0"
+    set {_color::5} to "#C7CAFF"
+    set {_color::6} to "#CDABEB"
+    set {_color::7} to "#F6C2F3"
+    loop {_text1::*}:
+        if loop-value is not " ":
+            if {_direction} is true:
+                add "<%{_color::%{_num}%}%>%loop-value%" to {_text2::*}
+                set {_num} to {_num} + 1
+                if {_num} = 7:
+                    set {_direction} to false
+            else if {_direction} is false:
+                add "<%{_color::%{_num}%}%>%loop-value%" to {_text2::*}
+                set {_num} to {_num} - 1
+                if {_num} = 1:
+                    set {_direction} to true
+            else:
+                add "<%{_color::1}%>%loop-value%" to {_text2::*}
+                set {_num} to 2
+                set {_direction} to true
+        else:
+            add " " to {_text2::*}
+    set {_final} to join {_text2::*} using ""
+    return {_final}
+
+function pinkgra(text: text) :: text:
+    set {_text1::*} to split {_text} using ""
+    set {_color::1} to "#FFFFFF"
+    set {_color::2} to "#FFF0FF"
+    set {_color::3} to "#FFE0FF"
+    set {_color::4} to "#FFD1FF"
+    set {_color::5} to "#FFC2FF"
+    set {_color::6} to "#FFB3FF"
+    set {_color::7} to "#FF94FF"
+    loop {_text1::*}:
+        if loop-value is not " ":
+            if {_direction} is true:
+                add "<%{_color::%{_num}%}%>%loop-value%" to {_text2::*}
+                set {_num} to {_num} + 1
+                if {_num} = 7:
+                    set {_direction} to false
+            else if {_direction} is false:
+                add "<%{_color::%{_num}%}%>%loop-value%" to {_text2::*}
+                set {_num} to {_num} - 1
+                if {_num} = 1:
+                    set {_direction} to true
+            else:
+                add "<%{_color::1}%>%loop-value%" to {_text2::*}
+                set {_num} to 2
+                set {_direction} to true
+        else:
+            add " " to {_text2::*}
+    set {_final} to join {_text2::*} using ""
+    return {_final}
+
+function chaos(text: text) :: text:
+    set {_text1::*} to split {_text} using ""
+    loop {_text1::*}:
+        if loop-value is not " ":
+            chance of 50%:
+                add "&l" to {_text2::*}
+            chance of 50%:
+                add "&o" to {_text2::*}
+            add loop-value to {_text2::*}
+            add "&r" to {_text2::*}
+        else:
+            add " " to {_text2::*}
+    set {_final} to join {_text2::*} using ""
+    return {_final}
+
+command /rankplayer <string> [<text>]:
+    permission: op
+    trigger:
+        loop {rank::*}:
+            if {rank::%loop-value%::pl::%arg-1%} is set:
+                if arg-2 is "--clear":
+                    delete {haverank.list::%arg-1%}
+                    delete {rank::%loop-value%::pl::%arg-1%}
+                    send "&cĐã khiến người chơi &f%arg-1%&c unranked!"
+                else:
+                    if arg-2 is not set:
+                        send "&f%arg-1% &eđang sở hữu rank &f%loop-value%"
+                    else:
+                        if {rank::%arg-2%} is not set:
+                            send "&cBạn chưa thêm rank này vào game!"
+                        else:
+                            delete {rank::%loop-value%::pl::%arg-1%}
+                            set {rank::%arg-2%::pl::%arg-1%} to arg-1
+                            send "&aĐã set rank của &f%arg-1% &athành &f%arg-2%"
+                stop
+            else:
+                if arg-2 is "--clear":
+                    send "&f%arg-1% &ckhông có rank!"
+                    stop
+        if arg-2 is not set:
+            send "&f%arg-1% &cđang không có rank"
+            delete {haverank.list::%arg-1%}
+        else:
+            if {rank::%arg-2%} is not set:
+                send "&cBạn chưa thêm rank này vào game!"
+            else:
+                if {haverank.list::%arg-1%} is not arg-1:
+                    set {haverank.list::%arg-1%} to arg-1
+                set {rank::%arg-2%::pl::%arg-1%} to arg-1
+                send "&aĐã set rank của &f%arg-1% &athành &f%arg-2%"
+     
+command /rankset <string> [<text>]:
+    permission: op
+    trigger:
+        if {rank::%arg-1%} is not set:
+            set {rank::%arg-1%} to arg-1
+            send "&eĐã thêm rank &7%arg-1%&e!"
+        else:
+            send "&cRank &7%arg-1% &cđã có sẵn!"
+        if arg-2 is not set:
+            set {rank::%arg-1%::rankdisplay} to "[%arg-1%]"
+        else:
+            set {rank::%arg-1%::rankdisplay} to arg-2
+        send "&aĐã chỉnh rank display của &f%arg-1% &athành &f%formatted {rank::%arg-1%::rankdisplay}%"
+
+command /rankdisplay <string> [<text>]:
+    permission: op
+    trigger:
+        if {rank::%arg-1%} is not set:
+            send "&cBạn chưa thêm rank này vào game!"
+            stop
+        if arg-2 is not set:
+            set {rank::%arg-1%::rankdisplay} to "[%arg-1%]"
+        else:
+            set {rank::%arg-1%::rankdisplay} to arg-2
+        send "&aĐã chỉnh rank display của &f%arg-1% &athành &f%formatted {rank::%arg-1%::rankdisplay}%"
+
+command /rankchat <string> [<text>] [<text>] [<string>]:
+    permission: op
+    trigger:
+        if {rank::%arg-1%} is not set:
+            send "&cBạn chưa thêm rank này vào game!"
+            stop
+        if arg-3 is not set:
+            if arg-2 is not set:
+                delete {rank::%arg-1%::chat}
+                send "&cĐã xóa chat format riêng của %arg-1%"
+            else:
+                set {rank::%arg-1%::chat} to arg-2
+                send "&aĐã chỉnh rank chat display của &f%arg-1% &athành &f%formatted {rank::%arg-1%::chat}%chat trông như này"
+        else:
+            if arg-4 is set:
+                loop {chat.function::*}:
+                    if loop-value is arg-4:
+                        set {rank::%arg-1%::chat::%arg-3%} to arg-3
+                        set {rank::%arg-1%::chat::%arg-3%.special} to arg-4
+                        broadcast "%{rank::%arg-1%::chat::%arg-3%.special}%"
+                        send "&aĐã đưa &f%arg-3% vào danh sách những người có chat riêng trong rank này!"
+                        stop
+                send "&cKhông có hàm nào tên như vậy"
+            else:
+                delete {rank::%arg-1%::chat::%arg-3%}
+                delete {rank::%arg-1%::chat::%arg-3%.special}
+                send "&cĐã xóa &f%arg-3% khỏi hàm tạo chat custom"
+        
+
+command /rankdisplayer <string> [<text>] [<text>] [<text>]:
+    permission: op
+    trigger:
+        if {rank::*} doesn't contain arg-1:
+            send "&cBạn chưa thêm rank này vào game!"
+            stop
+        if arg-3 is not set: 
+            if arg-2 is not set:
+                delete {rank::%arg-1%::displayer}
+            else:
+                set {rank::%arg-1%::displayer} to arg-2
+            send "&aĐã chỉnh rank player name display của &f%arg-1% &athành %formatted {rank::%arg-1%::displayer}%tên"
+        else:
+            if arg-4 is set:
+                set {rank::%arg-1%::displayer::%arg-3%} to arg-3
+                set {rank::%arg-1%::displayer::%arg-3%.special} to arg-4
+                send "&aĐã chỉnh rank player name display của &f%arg-3% trong &f%arg-1% &athành %formatted {rank::%arg-1%::displayer::%arg-3%.special}%"
+            else:
+                delete {rank::%arg-1%::displayer::%arg-3%}
+                delete {rank::%arg-1%::displayer::%arg-3%.special}
+                send "&cĐã xóa tên thay thế của &f%arg-3%"
+
+command /rankjoin <string> [<text>]:
+    permission: op
+    trigger:
+        if {rank::*} doesn't contain arg-1:
+            send "&cBạn chưa thêm rank này vào game!"
+            stop
+        
+command /ranklist [<string>]:
+    permission: op
+    trigger:
+        set {_list} to join {rank::*} with ","
+        send "&eDanh sách các rank hiện tại là: &f%{_list}%"
+        if arg-1 is set:
+            if {rank::%arg-1%} is set:
+                loop {rank::%arg-1%::pl::*}:
+                    delete {haverank.list::%loop-value%}
+                    send "&cĐã khiến &f%loop-value% &cunranked"
+                    delete {rank::%arg-1%::pl::%loop-value%}
+                delete {rank::%arg-1%}
+                send "&eĐã xóa rank &f%arg-1%"
+            else:
+                send "&cKhông có rank nào tên như này!"
+
+command /rankforcedelete:
+    permission: op
+    trigger:
+        delete {rank::*}
+        delete {haverank.list::*}
+
+command /rankplayerlist:
+    permission: op
+    trigger:
+        loop {haverank.list::*}:
+            broadcast "%loop-value%"

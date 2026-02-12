@@ -1,0 +1,1307 @@
+
+
+on vehicle enter:
+    if the event-entity has the scoreboard tag "trader":
+        cancel event
+
+on villager transform:
+    if the event-entity has the scoreboard tag "trader":
+        cancel event
+
+# -------------------------------------------------------------------------
+# Function: linearWeightedRandom
+# Mô hình: Giảm Tuyến Tính (Linear Decay)
+# Input:
+#   - {_max}: Số nguyên tối đa (số a). Kết quả sẽ từ 0 đến a.
+#   - {_prob_last}: Xác suất chính xác của số cuối cùng ({_max}).
+#   - {_prob_diff}: Lượng xác suất biến thiên/tăng lên giữa số x+1 và x (Delta P).
+# Output: Một số nguyên từ 0 đến {_max}
+# -------------------------------------------------------------------------
+
+function WRandom(max: integer, prob_last: number, prob_diff: number) :: integer:
+    
+    # 1. Tính toán Xác suất P(x) cho từng số từ 1 đến max
+    set {_sum_probs} to 0
+    
+    # Khởi tạo bảng xác suất (Probability Mass Function - PMF)
+    set {_pmf::*} to 1
+    
+    # Tính P(x) cho x = 1 đến max
+    loop {_max} times:
+        set {_x} to loop-value
+        # Công thức: P(x) = P(max) + (max - x) * Delta P
+        set {_prob_x} to {_prob_last} + (({_max} - {_x}) * {_prob_diff})
+        set {_pmf::%{_x}%} to {_prob_x}
+        set {_sum_probs} to {_sum_probs} + {_prob_x}
+        
+    # 2. Tính Xác suất cho số 0
+    # P(0) = 1 - (Tổng xác suất của 1 đến max)
+    set {_prob_zero} to 1 - {_sum_probs}
+    if {_prob_zero} < 0:
+        # Nếu tổng xác suất vượt quá 100%, ta không thể phân phối được.
+        # Nên dùng 'error' hoặc 'return 0' tùy theo cách bạn muốn xử lý lỗi.
+        # Ở đây ta trả về -1 (giá trị lỗi) để báo hiệu tham số sai.
+        # Hoặc dùng 'stop' nếu add-on SkUtils có sẵn.
+        broadcast "&c[LỖI] Có lỗi khi roll enchant, hãy báo ngay cho dev nhé!"
+        return 0
+    
+    # 3. Xây dựng Hàm Phân Phối Tích Lũy (CDF) và Quay số
+    set {_cdf_offset} to 0
+    set {_rand} to random number between 0 and 1 # Quay số ngẫu nhiên
+    
+    # Kiểm tra P(0) trước
+    set {_cdf_offset} to {_cdf_offset} + {_prob_zero}
+    if {_rand} <= {_cdf_offset}:
+        return 0
+        
+    # Kiểm tra P(1) đến P(max)
+    loop {_max} times:
+        set {_x} to loop-value
+        set {_cdf_offset} to {_cdf_offset} + {_pmf::%{_x}%}
+        
+        if {_rand} <= {_cdf_offset}:
+            return {_x}
+            
+    # Trường hợp dự phòng (nên ra số {_max})
+    return 0
+
+function restock(villager: entity):
+    set {_gem} to "id:""minecraft:emerald"",components:{""minecraft:custom_name"":{""bold"":true,""color"":""green"",""italic"":false,""text"":""Adventurer's Gem""},""minecraft:lore"":[{""color"":""yellow"",""italic"":true,""text"":""một thứ ngọc vô cùng quý hiếm""}]}"
+    set {_zb2egg} to "id:""minecraft:zombie_spawn_egg"",count:1,components:{""minecraft:entity_data"":{id:""minecraft:zombie"",CanPickUpLoot:0b,CanBreakDoors:1b,Tags:[""zb2""],attributes:[{id:""minecraft:spawn_reinforcements"",base:0}]},""minecraft:custom_name"":{""bold"":true,""color"":""dark_green"",""text"":""Suspicious Egg""}}"
+    set {_id} to uuid of {_villager}
+    set {_zb2egg.string} to ""
+    if {cantrade.zb2.chance} = 0:
+        set {_chance} to 0
+    else:
+        set {_chance} to a random integer between 1 and {cantrade.zb2.chance}
+    if {cantrade.zb2.%{_id}%} is true:
+        if {_chance} = 1:
+            set {_zb2egg.string} to ",{maxUses:1,buy:{%{_gem}%,count:10},sell:{%{_zb2egg}%}}"
+            loop {restock::*}:
+                set {cantrade.zb2.%loop-value%} to false
+        else:
+            set {cantrade.zb2.%{_id}%} to false
+            add -1 to {cantrade.zb2.chance}
+    execute console command "data remove entity %{_id}% Offers"
+    if {_villager} has scoreboard tag "debug":
+        set {_debug.list::*} to "id:""minecraft:shears"",count:1,components:{""minecraft:custom_name"":{""bold"":true,""color"":""yellow"",""italic"":false,""text"":""Defuser""}}", "id:""minecraft:iron_hoe"",count:1,components:{""minecraft:custom_name"":{""bold"":true,""color"":""yellow"",""italic"":false,""text"":""Ripping Hook""}}", "id:""minecraft:stone_axe"",count:1,components:{""minecraft:custom_name"":{""bold"":true,""color"":""dark_purple"",""italic"":false,""text"":""Summoner""},""minecraft:item_model"":""minecraft:goat_horn"",""minecraft:lore"":[{""color"":""yellow"",""italic"":true,""text"":""Đánh thường để chọn mục tiêu""},{""color"":""yellow"",""italic"":true,""text"":""Ấn chuột phải để gọi đệ""}]}", "id:""minecraft:compass"",count:1,components:{""minecraft:lodestone_tracker"":{target:{dimension:""minecraft:overworld"",pos:[I;-852,63,-259]},tracked:false},""minecraft:custom_name"":{""bold"":true,""color"":""blue"",""italic"":false,""text"":""Ocean Compass""}}", "id:""minecraft:compass"",count:1,components:{""minecraft:lodestone_tracker"":{target:{dimension:""minecraft:overworld"",pos:[I;167,64,576]},tracked:false},""minecraft:custom_name"":{""bold"":true,""color"":""dark_green"",""italic"":false,""text"":""Swamp Compass""}}", "id:""minecraft:compass"",count:1,components:{""minecraft:lodestone_tracker"":{target:{dimension:""minecraft:overworld"",pos:[I;630,153,-8]},tracked:false},""minecraft:custom_name"":{""bold"":true,""color"":""gold"",""italic"":false,""text"":""Mountain Compass""}}", "id:""minecraft:beetroot"",count:1,components:{""minecraft:custom_name"":{""bold"":true,""color"":""dark_red"",""italic"":false,""text"":""Mysterious Heart""},""minecraft:lore"":[{""color"":""yellow"",""italic"":true,""text"":""Trái tim của một sinh vật bí ẩn nào đó...""}]}", and "id:""minecraft:snowball"",count:1,components:{""minecraft:custom_name"":{""bold"":true,""color"":""aqua"",""italic"":false,""text"":""Santa's Ball""},""minecraft:lore"":[{""color"":""yellow"",""italic"":true,""text"":""Đơn giản là quả bóng... tuyết""}]}"
+        if {debug.value} is not set:
+            set {debug.value} to 1
+        else:
+            execute console command "data merge entity %{_id}% {Offers:{Recipes:[{maxUses:64,buy:{id:""minecraft:stick"",count:1},sell:{%{_debug.list::%{debug.value}%}%,count:1}}]}}"
+            set {debug.value} to {debug.value} + 1
+            if {debug.value} > 8:
+                set {debug.value} to 1
+        stop
+    if {_villager} has the scoreboard tag "snow":
+        set {_heart} to "id:""minecraft:beetroot"",count:1,components:{""minecraft:custom_name"":{""bold"":true,""color"":""dark_red"",""italic"":false,""text"":""Mysterious Heart""},""minecraft:lore"":[{""color"":""yellow"",""italic"":true,""text"":""Trái tim của một sinh vật bí ẩn nào đó...""}]}"
+        set {_task} to "id:""minecraft:paper"",count:1,components:{""minecraft:custom_name"":{""color"":""yellow"",""italic"":true,""text"":""Snow Task Ticket #%{trader2::snow::taskcount}%""},""minecraft:lore"":[{""color"":""white"",""text"":""Ấn chuột phải để đăng ký làm task""}],""minecraft:item_model"": ""minecraft:map""}"
+        set {_general::*} to """minecraft:packed_ice""","""minecraft:blue_ice""","""minecraft:ice""","""minecraft:ice""","""minecraft:powder_snow_bucket""", and """minecraft:snow_block"""
+    if {_villager} has scoreboard tag "trader2":
+        set {_task.options::*} to "id:""minecraft:cooked_beef"",count:1,components:{""minecraft:custom_name"":{""bold"":true,""color"":""red"",""italic"":false,""text"":""Harder Task Confirmation""},""minecraft:item_model"":""minecraft:ominous_bottle""}", "id:""minecraft:cooked_beef"",count:1,components:{""minecraft:custom_name"":{""bold"":true,""color"":""green"",""italic"":false,""text"":""Time Extending Confirmation""},""minecraft:item_model"":""minecraft:clock""}", "id:""minecraft:cooked_beef"",count:1,components:{""minecraft:custom_name"":{""bold"":true,""color"":""blue"",""italic"":false,""text"":""Private Task Confirmation""}, ""minecraft:item_model"": ""minecraft:trial_key""}", and "id:""minecraft:paper"",count:1,components:{""minecraft:custom_name"":{""color"":""light_purple"",""italic"":true,""text"":""Bet Ticket""},""minecraft:lore"":[{""color"":""yellow"",""text"":""Coming soon...!"", ""minecraft:item_model"": ""minecraft:filled_map""}]}"
+        set {_gem.count} to a random integer between 1 and 2
+        set {_trade::*} to "{maxUses:99,buy:{id:""minecraft:snow_block"",count:1},buyB:{%{_gem}%,count:%{_gem.count}%},sell:{%{_task}%}}"
+        chance of 75%:
+            set {_general} to a random element out of {_general::*}
+            set {_gem.count1} to a random integer between 3 and 5
+            add "{maxUses:1,buy:{id:%{_general}%,count:1},buyB:{%{_gem}%,count:%{_gem.count1}%},sell:{%{_task.options::1}%}}" to {_trade::*}
+        chance of 25%:
+            set {_general} to a random element out of {_general::*}
+            set {_gem.count2} to a random integer between 8 and 16
+            add "{maxUses:1,buy:{id:%{_general}%,count:1},buyB:{%{_gem}%,count:%{_gem.count2}%},sell:{%{_task.options::2}%}}" to {_trade::*}
+        chance of 25%:
+            set {_general} to a random element out of {_general::*}
+            set {_gem.count3} to a random integer between 8 and 16
+            add "{maxUses:1,buy:{id:%{_general}%,count:1},buyB:{%{_gem}%,count:%{_gem.count3}%},sell:{%{_task.options::3}%}}" to {_trade::*}
+        chance of 25%:
+            add "{maxUses:1,buy:{id:""minecraft:bedrock"",count:1},buyB:{id:""minecraft:bedrock"",count:1},sell:{%{_task.options::4}%}}" to {_trade::*}
+        set {_task.options} to join {_trade::*} using ","
+        execute console command "data merge entity %{_id}% {Offers:{Recipes:[%{_task.options}%]}}"
+        stop
+    set {_material.list::*} to "iron" and "copper"
+    set {_material} to a random element out of {_material.list::*}
+    set {_general.list::*} to "id:""minecraft:%{_material}%_helmet""","id:""minecraft:%{_material}%_chestplate""","id:""minecraft:%{_material}%_leggings""","id:""minecraft:%{_material}%_boots""", "id:""minecraft:%{_material}%_sword""", "id:""minecraft:enchanted_book"",count:1,components:{""minecraft:custom_name"":{""bold"":true,""color"":""green"",""italic"":false,""text"":""Magical Book""}}", and "id:""minecraft:book"",count:1"
+    if {_material} is "iron":
+        set {_random} to a random number between 1 and 1.4
+    else:
+        set {_random} to a random number between 0.8 and 1
+
+    set {_general.sell} to a random integer between 1 and 6
+    if {_general.sell} <= 4:
+        set {_armor.enchant1::*} to "", "projectile_", "blast_", and "fire_"
+        set {_armor.enc} to 1
+        chance of 25%:
+            set {_armor.enc} to a random integer between 2 and 4
+        set {_amplify1} to WRandom(2, 0.1, 0.4)
+        set {_amplify2} to WRandom(2, 0.1, 0.4)
+        set {_amplify3} to 0
+        set {_amplify4} to 0
+        set {_amplify5} to 0
+        set {_amplify6} to 0
+        set {_amplify7} to 0
+        if {_general.sell} = 1:
+            set {_amplify3} to WRandom(1, 0.25, 0.5)
+            set {_amplify4} to WRandom(2, 0.1, 0.05)
+        if {_general.sell} = 4:
+            set {_amplify5} to WRandom(2, 0.2, 0.1)
+            set {_amplify7} to WRandom(2, 0.1, 0.05)
+        set {_amplify6} to WRandom(3, 0.02, 0.04)
+        set {_sum} to {_amplify1} + {_amplify2} + {_amplify3} + {_amplify4} + {_amplify5} + {_amplify6} + {_amplify7}
+        if {_sum} = 0:
+            set {_amplify2} to 1
+        set {_gem.count3} to {_amplify1} + {_amplify2} + {_amplify3} + {_amplify4} + {_amplify5} + {_amplify6} + {_amplify7}
+        set {_general.id} to "%{_general.list::%{_general.sell}%}%,count:1,components:{""minecraft:enchantments"":{""%{_armor.enchant1::%{_armor.enc}%}%protection"":%{_amplify1}%,""unbreaking"":%{_amplify2}%,""aqua_affinity"":%{_amplify3}%,""respiration"":%{_amplify4}%,""feather_falling"":%{_amplify5}%,""thorns"":%{_amplify6}%,""depth_strider"":%{_amplify7}%}}"
+    else if {_general.sell} = 5:
+        set {_amplify1} to WRandom(3, 0.05, 0.15)
+        set {_amplify2} to WRandom(2, 0.1, 0.4)
+        set {_amplify3} to WRandom(2, 0.02, 0.16)
+        set {_amplify4} to WRandom(2, 0.05, 0.1)
+        set {_sword.enchant} to "sharpness"
+        chance of 25%:
+            set {_sword.enchant.list::*} to "smite" and "bane_of_arthropods"
+            set {_sword.enchant} to a random element out of {_sword.enchant.list::*}
+            set {_amplify1} to {_amplify1} + 1
+        set {_sum} to {_amplify1} + {_amplify2} + {_amplify3} + {_amplify4}
+        if {_sum} = 0:
+            set {_amplify2} to 1
+        set {_gem.count3} to {_amplify1} + {_amplify2} + {_amplify3} + {_amplify4}
+        set {_general.id} to "%{_general.list::%{_general.sell}%}%,count:1,components:{""minecraft:enchantments"":{""%{_sword.enchant}%"":%{_amplify1}%,""unbreaking"":%{_amplify2}%,""looting"":%{_amplify3}%,""knockback"":%{_amplify4}%}}"
+    else:
+        set {_general.id} to {_general.list::%{_general.sell}%}
+        set {_gem.count3} to WRandom(2, 0.3, 0.4)
+        set {_random} to 1
+        set {_general.sell} to 7
+    set {_gem.count3} to round({_gem.count3}*{_random})
+
+    set {_material} to a random element out of {_material.list::*}
+    set {_general.list1::*} to "id:""minecraft:%{_material}%_shovel""","id:""minecraft:%{_material}%_hoe""","id:""minecraft:%{_material}%_axe""","id:""minecraft:%{_material}%_pickaxe""", "id:""minecraft:enchanted_book"",count:1,components:{""minecraft:custom_name"":{""bold"":true,""color"":""green"",""italic"":false,""text"":""Magical Book""}}", and "id:""minecraft:book"",count:1"
+    if {_material} is "iron":
+        set {_random} to a random number between 1 and 1.4
+    else:
+        set {_random} to a random number between 0.8 and 1
+
+    set {_general.sell1} to a random integer between 1 and 5
+    if {_general.sell1} <= 4:
+        set {_amplify1} to WRandom(3, 0.05, 0.15)
+        set {_amplify2} to WRandom(2, 0.1, 0.4)
+        set {_amplify3} to 0
+        set {_amplify4} to 0
+        chance of 20%:
+            chance of 50%:
+                set {_amplify3} to WRandom(2, 0.3, 0.4)
+            else:
+                set {_amplify4} to 1
+        set {_sum} to {_amplify1} + {_amplify2} + {_amplify3} + {_amplify4}
+        if {_sum} = 0:
+            set {_amplify2} to 1
+        set {_gem.count5} to {_amplify1} + {_amplify2} + {_amplify3} + {_amplify4}
+        set {_general.id1} to "%{_general.list1::%{_general.sell1}%}%,count:1,components:{""minecraft:enchantments"":{""efficiency"":%{_amplify1}%,""unbreaking"":%{_amplify2}%,""fortune"":%{_amplify3}%,""silk_touch"":%{_amplify4}%}}"
+    else:
+        set {_general.id1} to {_general.list1::%{_general.sell1}%}
+        set {_gem.count5} to WRandom(2, 0.3, 0.4)
+        set {_random} to 1
+        set {_general.sell1} to 6
+    set {_gem.count5} to round({_gem.count5}*{_random})
+
+    set {_general.list2::*} to "id:""minecraft:golden_carrot"",count:1", "id:""minecraft:golden_apple"",count:1", "id:""minecraft:shears"",count:1,components:{""minecraft:custom_name"":{""bold"":true,""color"":""yellow"",""italic"":false,""text"":""Defuser""}}", "id:""minecraft:iron_hoe"",count:1,components:{""minecraft:custom_name"":{""bold"":true,""color"":""yellow"",""italic"":false,""text"":""Ripping Hook""}}", "id:""minecraft:stone_axe"",count:1,components:{""minecraft:custom_name"":{""bold"":true,""color"":""dark_purple"",""italic"":false,""text"":""Summoner""},""minecraft:item_model"":""minecraft:goat_horn"",""minecraft:lore"":[{""color"":""yellow"",""italic"":true,""text"":""Đánh thường để chọn mục tiêu""},{""color"":""yellow"",""italic"":true,""text"":""Ấn chuột phải để gọi đệ""}]}", "id:""minecraft:compass"",count:1,components:{""minecraft:lodestone_tracker"":{target:{dimension:""minecraft:overworld"",pos:[I;-852,63,-259]},tracked:false},""minecraft:custom_name"":{""bold"":true,""color"":""blue"",""italic"":false,""text"":""Ocean Compass""}}", "id:""minecraft:compass"",count:1,components:{""minecraft:lodestone_tracker"":{target:{dimension:""minecraft:overworld"",pos:[I;167,64,576]},tracked:false},""minecraft:custom_name"":{""bold"":true,""color"":""dark_green"",""italic"":false,""text"":""Swamp Compass""}}", and "id:""minecraft:compass"",count:1,components:{""minecraft:lodestone_tracker"":{target:{dimension:""minecraft:overworld"",pos:[I;630,153,-8]},tracked:false},""minecraft:custom_name"":{""bold"":true,""color"":""gold"",""italic"":false,""text"":""Mountain Compass""}}"
+
+    set {_general.buy2} to a random integer between 1 and 8
+    if {_general.buy2} = 1:
+        set {_gem.count4} to a random integer between 1 and 2
+    else if {_general.buy2} = 2:
+        set {_gem.count4} to a random integer between 2 and 4
+    else if {_general.buy2} = 3:
+        set {_gem.count4} to a random integer between 2 and 4
+    else if {_general.buy2} = 4:
+        set {_gem.count4} to a random integer between 6 and 10
+    else if {_general.buy2} = 5:
+        set {_gem.count4} to a random integer between 8 and 15
+    else:
+        set {_gem.count4} to 2 + WRandom(3, 0.05, 0.1)
+    
+    #Ocean trader-------------------------------
+    if {_villager} has the scoreboard tag "ocean":
+        set {_ocean.buy::*} to "id:""minecraft:fishing_rod"",count:1", "id:""minecraft:pufferfish"",count:1", "id:""minecraft:turtle_scute"",count:1", and "id:""minecraft:nautilus_shell"",count:1"
+        set {_ocean.buyB::*} to "id:""minecraft:cod"",count:32", "id:""minecraft:salmon"",count:32", "id:""minecraft:tropical_fish"",count:8", and "id:""minecraft:axolotl_bucket"",count:1" #và một trong những cái compass
+        set {_buy.count} to WRandom(2, 0.3, 0.4)
+        set {_buy} to a random integer between 1 and 4
+        if {_buy} <= 3:
+            set {_gem.count} to 1
+        else:
+            set {_gem.count} to 2
+        set {_buyB} to a random integer between 1 and 4
+        set {_buy2} to a random integer between 1 and 4
+        if {_buy2} <= 3:
+            set {_sell2} to a random integer between 1 and 4
+            set {_gem.count2} to 1
+        else:
+            set {_random} to a random number between 1 and 1.5
+            set {_sell2} to 5
+            set {_trident.enchant.list::*} to """riptide""" and """loyalty"""
+            set {_trident.enchant1} to a random element out of {_trident.enchant.list::*}
+            set {_trident.amplify1} to WRandom(3, 0.02, 0.1)
+            set {_trident.amplify2} to WRandom(3, 0.05, 0.15)
+            set {_gem.count2} to 1 + {_trident.amplify1} + {_trident.amplify2}
+            set {_gem.count2} to round({_gem.count2}*{_random})
+        set {_ocean.sell::*} to "id:""minecraft:cooked_cod"",count:32", "id:""minecraft:cooked_salmon"",count:32", "id:""minecraft:potion"",count:1,components:{""minecraft:potion_contents"":{potion:""minecraft:long_water_breathing""}}", "id:""minecraft:splash_potion"",count:1,components:{""minecraft:potion_contents"":{potion:""minecraft:turtle_master""}}", and "id:""minecraft:trident"",count:1,components:{""minecraft:enchantments"":{%{_trident.enchant1}%:%{_trident.amplify1}%,""unbreaking"":%{_trident.amplify2}%}}"
+        execute console command "data merge entity %{_id}% {Offers:{Recipes:[{maxUses:%{_buy.count}%,buy:{%{_ocean.buy::%{_buy}%}%},buyB:{%{_ocean.buyB::%{_buyB}%}%},sell:{%{_gem}%,count:%{_gem.count}%}},{maxUses:1,buy:{%{_general.list2::%{_general.buy2}%}%},sell:{%{_gem}%,count:%{_gem.count4}%}},{maxUses:1,buy:{%{_ocean.buy::%{_buy2}%}%},buyB:{%{_gem}%,count:%{_gem.count2}%},sell:{%{_ocean.sell::%{_sell2}%}%}},{maxUses:1,buy:{%{_general.list::%{_general.sell}%}%,count:1},buyB:{%{_gem}%,count:%{_gem.count3}%},sell:{%{_general.id}%}},{maxUses:1,buy:{%{_general.list1::%{_general.sell1}%}%,count:1},buyB:{%{_gem}%,count:%{_gem.count5}%},sell:{%{_general.id1}%}}%{_zb2egg.string}%]}}"
+
+    #Swamp trader-------------------------------
+    if {_villager} has the scoreboard tag "swamp":
+        set {_swamp.buy::*} to "id:""minecraft:poisonous_potato"",count:1", "id:""minecraft:tipped_arrow"",count:1,components:{""minecraft:potion_contents"":{potion:""minecraft:poison""}}", "id:""minecraft:glowstone_dust"",count:1" ,"id:""minecraft:glow_ink_sac"",count:1", "id:""minecraft:shield"",count:1" and "id:""minecraft:crossbow"",count:1"
+        set {_swamp.buyB::*} to "id:""minecraft:vine"",count:48", "id:""minecraft:fermented_spider_eye"",count:32", "id:""minecraft:slime_ball"",count:16", and "id:""minecraft:ominous_bottle"",count:1"
+        set {_buy.count} to WRandom(2, 0.3, 0.4)
+        set {_buy} to a random integer between 1 and 4
+        set {_sell2.time} to 1
+        set {_gem.count} to 1
+        if {_buy} = 3:
+            set {_gem.count} to 2
+        set {_buyB} to a random integer between 1 and 4
+        if {_buyB} = 4:
+            set {_gem.count} to {_gem.count} + 1
+        set {_buy2} to a random integer between 1 and 6
+        if {_buy2} <= 3:
+            set {_sell2} to a random integer between 1 and 2
+            set {_gem.count2} to 1
+        else if {_buy2} = 4:
+            set {_sell2} to 3
+            set {_gem.count2} to 1
+            set {_sell2.time} to 1 + WRandom(2, 0.05, 0.2)
+        else if {_buy2} = 6:
+            set {_random} to a random number between 1 and 1.3
+            set {_sell2} to 5
+            set {_crossbow.enchant.list::*} to """piercing""" and """multishot"""
+            set {_enchant1} to a random element out of {_crossbow.enchant.list::*}
+            if {_enchant1} is  """piercing""":
+                set {_amplify1} to WRandom(3, 0.05, 0.2)
+            else:
+                set {_amplify1} to WRandom(1, 0.2, 0.1)
+            set {_amplify2} to WRandom(2, 0.1, 0.4)
+            set {_amplify3} to WRandom(2, 0.05, 0.15)
+            set {_sum} to {_amplify1} + {_amplify2} + {_amplify3}
+            if {_sum} = 0:
+                set {_amplify2} to 1
+            set {_gem.count2} to 1 + {_amplify1} + {_amplify2} + {_amplify3}
+            set {_gem.count2} to round({_gem.count2}*{_random})
+        else:
+            set {_sell2} to 4
+            set {_gem.count2} to 3 + WRandom(3, 0.1, 0.15)
+        set {_swamp.sell::*} to "id:""minecraft:splash_potion"",count:1,components:{""minecraft:potion_contents"":{potion:""minecraft:weakness""}}", "id:""minecraft:splash_potion"",count:1,components:{""minecraft:potion_contents"":{potion:""minecraft:oozing""}}", "id:""minecraft:carrot"",count:1,components:{""minecraft:item_model"":""minecraft:glow_ink_sac"",""minecraft:custom_name"":[{""color"":""#FF0000"",""text"":""T""},{""color"":""#FF2800"",""text"":""h""},{""color"":""#FF5000"",""text"":""u""},{""color"":""#FF7800"",""text"":""ố""},{""color"":""#FFA100"",""text"":""c ""},{""color"":""#FFC900"",""text"":""C""},{""color"":""#FFF200"",""text"":""ủ""},{""color"":""#C9FF00"",""text"":""a ""},{""color"":""#79FF00"",""text"":""N""},{""color"":""#28FF00"",""text"":""g""},{""color"":""#00FF28"",""text"":""ư""},{""color"":""#00FF79"",""text"":""ờ""},{""color"":""#00FFC9"",""text"":""i ""},{""color"":""#00E4FF"",""text"":""N""},{""color"":""#0094FF"",""text"":""g""},{""color"":""#0043FF"",""text"":""h""},{""color"":""#0700FF"",""text"":""i""},{""color"":""#3300FF"",""text"":""ệ""},{""color"":""#8B00FF"",""text"":""n""}]}", "id:""minecraft:shield"",count:1,components:{""minecraft:base_color"":""cyan"",""minecraft:banner_patterns"":[{""pattern"":""minecraft:curly_border"",""color"":""lime""},{""pattern"":""minecraft:rhombus"",""color"":""green""}],""minecraft:custom_name"":{""bold"":true,""color"":""dark_green"",""italic"":false,""text"":""Sticky Shield""}}", and "id:""minecraft:crossbow"",count:1,components:{""minecraft:enchantments"":{%{_enchant1}%:%{_amplify1}%,""unbreaking"":%{_amplify2}%,""quick_charge"":%{_amplify3}%}}"
+        execute console command "data merge entity %{_id}% {Offers:{Recipes:[{maxUses:%{_buy.count}%,buy:{%{_swamp.buy::%{_buy}%}%},buyB:{%{_swamp.buyB::%{_buyB}%}%},sell:{%{_gem}%,count:%{_gem.count}%}},{maxUses:1,buy:{%{_general.list2::%{_general.buy2}%}%},sell:{%{_gem}%,count:%{_gem.count4}%}},{maxUses:%{_sell2.time}%,buy:{%{_swamp.buy::%{_buy2}%}%},buyB:{%{_gem}%,count:%{_gem.count2}%},sell:{%{_swamp.sell::%{_sell2}%}%}},{maxUses:1,buy:{%{_general.list::%{_general.sell}%}%,count:1},buyB:{%{_gem}%,count:%{_gem.count3}%},sell:{%{_general.id}%}},{maxUses:1,buy:{%{_general.list1::%{_general.sell1}%}%,count:1},buyB:{%{_gem}%,count:%{_gem.count5}%},sell:{%{_general.id1}%}}%{_zb2egg.string}%]}}"
+
+    #Mountain trader
+    if {_villager} has the scoreboard tag "mountain":
+        set {_mountain.buy::*} to "id:""minecraft:flint_and_steel"",count:1", "id:""minecraft:spyglass"",count:1", "id:""minecraft:campfire"",count:1", "id:""minecraft:tipped_arrow"",count:1,components:{""minecraft:potion_contents"":{potion:""minecraft:slowness""}}", "id:""minecraft:shield"",count:1"  and "id:""minecraft:bow"",count:1"
+        set {_mountain.buyB::*} to "id:""minecraft:iron_ingot"",count:48", "id:""minecraft:pointed_dripstone"",count:32", "id:""minecraft:rotten_flesh"",count:64", and "id:""minecraft:phantom_membrane"",count:8" #và một trong những cái compass
+        set {_buy.count} to WRandom(2, 0.3, 0.4)
+        set {_buy} to a random integer between 1 and 4
+        set {_buyB} to a random integer between 1 and 4
+        if {_buyB} <= 3:
+            set {_gem.count} to 1
+        else:
+            set {_gem.count} to 2
+        set {_buy2} to a random integer between 1 and 6
+        set {_buy2} to a random integer between 1 and 6
+        if {_buy2} <= 4:
+            set {_sell2} to a random integer between 1 and 3
+            set {_gem.count2} to 1
+        else if {_buy2} = 5:
+            set {_sell2} to 4
+            set {_gem.count2} to 3 + WRandom(3, 0.1, 0.15)
+        else if {_buy2} = 6:
+            set {_random} to a random number between 1 and 1.3
+            set {_sell2} to 5
+            set {_amplify1} to WRandom(3, 0.05, 0.2)
+            set {_amplify2} to WRandom(2, 0.1, 0.4)
+            set {_amplify3} to WRandom(1, 0.01, 0.19)
+            set {_sum} to {_amplify1} + {_amplify2} + {_amplify3}
+            if {_sum} = 0:
+                set {_amplify2} to 1
+            set {_gem.count2} to {_amplify1} + {_amplify2} + {_amplify3}
+            set {_gem.count2} to round({_gem.count2}*{_random})
+        set {_mountain.sell::*} to "id:""minecraft:wind_charge"",count:32", "id:""minecraft:potion"",count:1,components:{""minecraft:potion_contents"":{potion:""minecraft:long_leaping""}}", "id:""minecraft:splash_potion"",count:1,components:{""minecraft:potion_contents"":{potion:""minecraft:long_slow_falling""}}", "id:""minecraft:shield"",count:1,components:{""minecraft:banner_patterns"":[{""pattern"":""minecraft:bricks"",""color"":""red""},{""pattern"":""minecraft:triangles_bottom"",""color"":""gray""},{""pattern"":""minecraft:triangles_top"",""color"":""gray""},{""pattern"":""minecraft:curly_border"",""color"":""gray""}],""minecraft:base_color"":""light_gray"",""minecraft:custom_name"":{""bold"":true,""color"":""white"",""italic"":false,""text"":""Spikey Shield""}}" and "id:""minecraft:bow"",count:1,components:{""minecraft:enchantments"":{""power"":%{_amplify1}%,""unbreaking"":%{_amplify2}%,""punch"":%{_amplify3}%}}"
+        execute console command "data merge entity %{_id}% {Offers:{Recipes:[{maxUses:%{_buy.count}%,buy:{%{_mountain.buy::%{_buy}%}%},buyB:{%{_mountain.buyB::%{_buyB}%}%},sell:{%{_gem}%,count:%{_gem.count}%}},{maxUses:1,buy:{%{_general.list2::%{_general.buy2}%}%},sell:{%{_gem}%,count:%{_gem.count4}%}},{maxUses:1,buy:{%{_mountain.buy::%{_buy2}%}%},buyB:{%{_gem}%,count:%{_gem.count2}%},sell:{%{_mountain.sell::%{_sell2}%}%}},{maxUses:1,buy:{%{_general.list::%{_general.sell}%}%,count:1},buyB:{%{_gem}%,count:%{_gem.count3}%},sell:{%{_general.id}%}},{maxUses:1,buy:{%{_general.list1::%{_general.sell1}%}%,count:1},buyB:{%{_gem}%,count:%{_gem.count5}%},sell:{%{_general.id1}%}}%{_zb2egg.string}%]}}"
+
+function taskmerchant(player: player,villtype: string, diff: integer, addition: boolean, individual: boolean) :: merchant:
+    set {_addition.general.max64::*} to carrot, potato, mutton, chicken, porkchop, beef, melon, sweet berries, and cookie 
+    #cave trader: raw copper, coal, rotten flesh, string, bone, glow berries, spider eye, gunpowder
+    set {_addition.general.max48::*} to baked potato, and bread
+    set {_addition.general.max32::*} to feather, leather, wheat, beetroot, and slime ball
+    #monument trader: prismarine shard, cooked cod, cod, salmon, cooked salmon
+    #cave trader: raw iron, iron ingot
+    set {_addition.general.max16::*} to egg, and pumpkin pie
+    #badland trader: armadillo scute, honey comb
+    #cave trader: fermented spider eye, amethyst shard
+    set {_addition.general.max8::*} to rabbit, and apple
+    #badland trader: brown egg
+    #monument trader: tropical fish
+    set {_addition.general.max4::*} to poisonous potato
+    #monument trader: pufferfish, turtle scute, turtle egg
+    #cave trader: ender pearl
+    #badland trader: honey bottle
+    set {_addition.general.max1::*} to cake, and rabbit stew
+    #monument trader: nautilus shell
+    #badland trader: honey block
+    set {_diff1.general.trade::*} to golden carrot and {defuser}
+    set {_diff2.general.trade::*} to zombie head, skeleton skull, creeper head, and {harvester}
+    set {_diff3.general.trade::*} to {zb2head} and {summoner}
+    if {_villtype} is "snow":
+        clear {_addition.unique.max64::*}
+        set {_addition.unique.max48::*} to cooked chicken, cooked mutton, cooked beef, and cooked porkchop
+        clear {_addition.unique.max32::*}
+        set {_addition.unique.max16::*} to blue egg, and blue ice
+        set {_addition.unique.max8::*} to cooked rabbit and tipped arrow of slowness
+        clear {_addition.unique.max4::*}
+        set {_addition.unique.max1::*} to glowstone dust
+    add {_addition.unique.max64::*} to {_addition.general.max64::*}
+    add {_addition.unique.max48::*} to {_addition.general.max48::*}
+    add {_addition.unique.max32::*} to {_addition.general.max32::*}
+    add {_addition.unique.max16::*} to {_addition.general.max16::*}
+    add {_addition.unique.max8::*} to {_addition.general.max8::*}
+    add {_addition.unique.max4::*} to {_addition.general.max4::*}
+    add {_addition.unique.max1::*} to {_addition.general.max1::*}
+    if {_individual} is true:
+        set {_merchant} to new merchant named "&b&lTask Riêng: &r&e%{_player}%"
+    else:
+        set {_merchant} to new merchant named "&b&lTask Chung"
+    while {_diff} > 0:
+        set {_doAddition2} to false
+        if {_diff} > 2:
+            set {_roll} to a random integer between 2 and 3
+        else if {_diff} > 1:
+            set {_roll} to a random integer between 1 and 2
+        else:
+            set {_roll} to 1
+        clear {_trade.ingre::*}
+        clear {_trade.ingre2::*}
+        if {_roll} = 1:
+            add a random element out of {_diff1.general.trade::*} to {_trade.ingre::*}
+            set {_prize} to 1
+            chance of 0.33:
+                set {_doAddition2} to true
+        else if {_roll} = 2:
+            add a random element out of {_diff2.general.trade::*} to {_trade.ingre::*}
+            set {_prize} to 2
+            chance of 0.67:
+                set {_doAddition2} to true
+        else:
+            add a random element out of {_diff3.general.trade::*} to {_trade.ingre::*}
+            set {_prize} to 3
+            set {_doAddition2} to true
+        if {_addition} is true:
+            set {_num} to a random element out of (1, 4, 8, 16, 32, 48, 64)
+            set {_count} to a random integer between round({_num}/2) and {_num}
+            add {_count} of a random element out of {_addition.general.max%{_num}%::*} to {_trade.ingre::*}
+            add 1 to {_prize}
+        if {_doAddition2} is true:
+            set {_num} to a random element out of (1, 4, 8, 16, 32, 48, 64)
+            set {_count} to a random integer between round({_num}/2) and {_num}
+            add {_count} of a random element out of {_addition.general.max%{_num}%::*} to {_trade.ingre2::*}
+            set {_prize2} to 1
+        set {_recipe} to new merchant recipe with result ({_prize} of {adven}) with max uses 1
+        set ingredients of merchant recipe {_recipe} to {_trade.ingre::*}
+        add {_recipe} to merchant recipes of {_merchant}
+        if {_trade.ingre2::*} is set:
+            set {_recipe2} to new merchant recipe with result ({_prize2} of {adven}) with max uses 1
+            set ingredients of merchant recipe {_recipe2} to {_trade.ingre2::*}
+            add {_recipe2} to merchant recipes of {_merchant}
+        add ({_roll} * -1) to {_diff}
+    return {_merchant}
+
+function taskscore(player: player,villtype: string, doMain: boolean ,addition: boolean, individual: boolean):
+    set {_general.other::*} to "minecraft.custom:minecraft.fish_caught", "minecraft.custom:minecraft.damage_dealt", and "minecraft.custom:minecraft.animals_bred"
+    if {_villtype} is "snow":
+        if {_individual} is false:
+            set {_multiplier} to min({trader2::snow::days},3)
+            if {trader2::snow::diff} > 2:
+                add a random integer between 1 and 2 to {_multiplier}
+        else:
+            set {_multiplier} to 1
+        set {_unique.kill::*} to "minecraft.killed:minecraft.stray", "minecraft.killed:minecraft.polar_bear", "minecraft.killed:minecraft.snow_golem", "minecraft.killed:minecraft.fox", and "minecraft.killed:minecraft.sheep"
+        set {_unique.killcount::1} to 10
+        set {_unique.killcount::2} to 1
+        set {_unique.killcount::3} to 25
+        set {_unique.killcount::4} to 10
+        set {_unique.killcount::5} to 25
+        set {_unique.display::1} to "Tiêu diệt Stray"
+        set {_unique.display::2} to "Hạ Gấu Trắng"
+        set {_unique.display::3} to "Hạ Người Tuyết"
+        set {_unique.display::4} to "Hạ Cáo"
+        set {_unique.display::5} to "Hạ Cừu"
+    if {_doMain} is true:
+        add {_unique.kill::*} to {_general.other::*}
+        set {_main} to a random element out of {_general.other::*}
+        if {_main} is "minecraft.custom:minecraft.fish_caught":
+            set {_maindisplay} to "Câu cá"
+            set {_mainscore} to 32
+        else if {_main} is "minecraft.custom:minecraft.damage_dealt":
+            set {_maindisplay} to "Gây sát thương"
+            set {_mainscore} to 1000
+        else if {_main} is "minecraft.custom:minecraft.animals_bred":
+            set {_maindisplay} to "Lai động vật"
+            set {_mainscore} to 100
+        else if {_main} is {_unique.kill::1}:
+            set {_maindisplay} to {_unique.display::1}
+            set {_mainscore} to {_unique.killcount::1}
+        else if {_main} is {_unique.kill::2}:
+            set {_maindisplay} to {_unique.display::2}
+            set {_mainscore} to {_unique.killcount::2}
+        else if {_main} is {_unique.kill::3}:
+            set {_maindisplay} to {_unique.display::3}
+            set {_mainscore} to {_unique.killcount::3}
+        else if {_main} is {_unique.kill::4}:
+            set {_maindisplay} to {_unique.display::4}
+            set {_mainscore} to {_unique.killcount::4}
+        else if {_main} is {_unique.kill::5}:
+            set {_maindisplay} to {_unique.display::5}
+            set {_mainscore} to {_unique.killcount::5}
+        else:
+            set {_maindisplay} to "unknown"
+            set {_mainscore} to 5
+        set {_mainscore} to {_mainscore} * {_multiplier}
+    if {_addition} is true:
+        set {_general.travel::*} to "minecraft.custom:minecraft.crouch_one_cm", "minecraft.custom:minecraft.boat_one_cm", "minecraft.custom:minecraft.climb_one_cm", "minecraft.custom:minecraft.pig_one_cm", "minecraft.custom:minecraft.horse_one_cm", and "minecraft.custom:minecraft.swim_one_cm"
+        set {_side} to a random element out of {_general.travel::*}
+        if {_side} is "minecraft.custom:minecraft.crouch_one_cm":
+            set {_sidedisplay} to "Quãng đường đã đi cúi người(m)"
+            set {_sidescore} to 250
+        else if {_side} is "minecraft.custom:minecraft.pig_one_cm":
+            set {_sidedisplay} to "Quãng đường đã đi trên lợn(m)"
+            set {_sidescore} to 500
+        else if {_side} is "minecraft.custom:minecraft.boat_one_cm":
+            set {_sidedisplay} to "Quãng đường đã đi trên thuyền(m)"
+            set {_sidescore} to 1000
+        else if {_side} is "minecraft.custom:minecraft.swim_one_cm":
+            set {_sidedisplay} to "Quãng đường đã bơi(m)"
+            set {_sidescore} to 1000
+        else if {_side} is "minecraft.custom:minecraft.climb_one_cm":
+            set {_sidedisplay} to "Độ cao đã leo thang(m)"
+            set {_sidescore} to 1000
+        else if {_side} is "minecraft.custom:minecraft.minecart_one_cm":
+            set {_sidedisplay} to "Quãng đường đã đi trên xe mỏ(m)"
+            set {_sidescore} to 1000
+        else if {_side} is "minecraft.custom:minecraft.horse_one_cm":
+            set {_sidedisplay} to "Quãng đường đã đi trên ngựa(m)"
+            set {_sidescore} to 2000
+        else:
+            set {_sidedisplay} to "unknown"
+            set {_sidescore} to 500
+        set {_sidescore} to {_sidescore} * {_multiplier}
+    if {_individual} is false:
+        delete {trader2::%{_villtype}%::mainscore}
+        delete {trader2::%{_villtype}%::sidescore}
+        execute console command "scoreboard objectives remove %{_villtype}%_side"
+        execute console command "scoreboard objectives remove %{_villtype}%_main"
+        if {_doMain} is true:
+            set {trader2::%{_villtype}%::mainscore} to {_mainscore}
+            set {trader2::%{_villtype}%::maindisplay} to {_maindisplay}
+            execute console command "scoreboard objectives add %{_villtype}%_main %{_main}%"
+            execute console command "scoreboard players set %{_player}% %{_villtype}%_main 0"
+            set {trader2::%{_villtype}%::donemain} to false
+        if {_addition} is true:
+            set {trader2::%{_villtype}%::sidescore} to {_sidescore}
+            set {trader2::%{_villtype}%::sidedisplay} to {_sidedisplay}
+            execute console command "scoreboard objectives add %{_villtype}%_side %{_side}%"
+            execute console command "scoreboard players set %{_player}% %{_villtype}%_side 0"
+            set {trader2::%{_villtype}%::doneside} to false
+    else:
+        delete {trader2::%{_villtype}%::participants::%{_player}%::mainscore}
+        delete {trader2::%{_villtype}%::participants::%{_player}%::sidescore}
+        execute console command "scoreboard objectives remove %{_villtype}%_side_%{_player}%"
+        execute console command "scoreboard objectives remove %{_villtype}%_main_%{_player}%"
+        if {_doMain}  is true:
+            set {trader2::%{_villtype}%::participants::%{_player}%::mainscore} to {_mainscore}
+            set {trader2::%{_villtype}%::participants::%{_player}%::maindisplay} to {_maindisplay}
+            execute console command "scoreboard objectives add %{_villtype}%_main_%{_player}% %{_main}%"
+            execute console command "scoreboard players set %{_player}% %{_villtype}%_main_%{_player}% 0"
+            set {trader2::%{_villtype}%::participants::%{_player}%::donemain} to false
+        if {_addition} is true:
+            set {trader2::%{_villtype}%::participants::%{_player}%::sidescore} to {_sidescore}
+            set {trader2::%{_villtype}%::participants::%{_player}%::sidedisplay} to {_sidedisplay}
+            execute console command "scoreboard objectives add %{_villtype}%_side_%{_player}% %{_side}%"
+            execute console command "scoreboard players set %{_player}% %{_villtype}%_side_%{_player}% 0"
+            set {trader2::%{_villtype}%::participants::%{_player}%::doneside} to false
+
+function taskRewardMerchant(player: player, villtype: string, weight: integer, individual: boolean) :: merchant:
+    if {_individual} is true:
+        set {_merchant} to new merchant named "&b&lTrade Riêng: &r&e%{_player}%"
+        set {_loop.time} to 1
+    else:
+        set {_merchant} to new merchant named "&b&lTrade Chung"
+        set {_chance} to a random integer between 0 and 1
+        if {_chance} + ({_weight}*0.1) >= 0.5:
+            set {_loop.time} to 2
+        else:
+            set {_loop.time} to 1
+    loop {_loop.time} times:
+        set {_general::list1::buy::*} to {harvester}, {summoner}, {zb2head}, {ocean}, {swamp}, {mountain}, and {heart}
+        set {_general::list1::buy} to random integer between 1 and 7
+        if {_general::list1::buy} = 1:
+            set {_gem.count1} to a random integer between 8 and 10
+        else if {_general::list1::buy} = 2:
+            set {_gem.count1} to a random integer between 12 and 15
+        else if {_general::list1::buy} = 3:
+            set {_gem.count1} to a random integer between 10 and 15
+        else:
+            set {_gem.count1} to a random integer between 4 and 5
+        set {_recipe} to new merchant recipe with result ({_gem.count1} of {adven}) with max uses 1
+        set ingredients of merchant recipe {_recipe} to {_general::list1::buy::%{_general::list1::buy}%}
+        add {_recipe} to merchant recipes of {_merchant}
+    if {_villtype} is "snow":
+        if {_individual} is true:
+            set {_chance} to a random integer between 0 and 1
+            if {_chance} + ({_weight}*0.1) >= 0.5:
+                set {_loop.time} to 2
+            else:
+                set {_loop.time} to 1
+        else:
+            set {_loop.timemulti} to max(a random number between 1 and 1.5,({_weight}*0.3)) 
+            set {_loop.time} to round((max(2, min(4, {trader2::snow::participants::playercount} + a random integer between -1 and 1))) * {_loop.timemulti})
+    loop {_loop.time} times:
+        clear {_i::*}
+        set {_luck} to max(1, {_weight} + a random integer between -2 and 1 + round({_weight}*0.2))
+        set {_material::*} to "copper" and "iron"
+        set {_chance} to a random integer between 0 and 1
+        if {_chance} + ({_weight}*0.1) >= 0.5:
+            set {_material} to {_material::2}
+        else:
+            set {_material} to {_material::1}
+        
+        # === ITEM TYPE SETUP ===
+        # Define item lists for each type
+        set {_list::weapon::*} to "sword" and "axe"
+        set {_list::tool::*} to "pickaxe", "shovel", "hoe" and "axe"
+        set {_list::armor::*} to "chestplate", "leggings", "helmet" and "boots"
+        
+        # Choose random item type (1=weapon, 2=tool, 3=armor)
+        set {_type.roll} to a random integer between 1 and 3
+        
+        if {_type.roll} = 1:
+            set {_itemtype} to "weapon"
+        else if {_type.roll} = 2:
+            set {_itemtype} to "tool"
+        else:
+            set {_itemtype} to "armor"
+        
+        # Pick random item from chosen type
+        set {_random.item} to a random element out of {_list::%{_itemtype}%::*}
+        
+        # Create final item (material + item name)
+        set {_result} to join {_material} and {_random.item} using " " parsed as item
+        
+        # ===== ENCHANT CONFIGURATION SYSTEM =====
+        if {_itemtype} is "weapon":
+            # WEAPON ENCHANTS
+            # Format: enchant name | base level | max level | rarity weight | weight decrease per roll
+            
+            set {_e1::name} to "sharpness"
+            set {_e1::base} to WRandom(3, 0.05, 0.15)
+            set {_e1::max} to 5
+            if {_villtype} is "snow":
+                chance of 0.4:
+                    add 1 to {_e1::base}
+                    chance of 0.4:
+                        set {_e1::name} to a random element out of "smite" and "bane of arthropods"
+                    else:
+                        set {_e1::name} to a random element out of "minecraft:doom_of_liar", "minecraft:ender_slayer", and "minecraft:fuse_cutter"
+            set {_e1::weight} to 100
+            set {_e1::weightDecreasePerLevel} to 15
+            set {_e1::decrease} to 25
+            
+            set {_e2::name} to "unbreaking"
+            set {_e2::base} to WRandom(2, 0.1, 0.4)
+            set {_e2::max} to 3
+            set {_e2::weight} to 50
+            set {_e2::weightDecreasePerLevel} to 5
+            set {_e2::decrease} to 10
+
+            if {_random.item} is "sword":
+                set {_e3::name} to "knockback"
+                set {_e3::base} to WRandom(2, 0.05, 0.15)
+                set {_e3::max} to 2
+                set {_e3::weight} to 25
+                set {_e3::weightDecreasePerLevel} to 0
+                set {_e3::decrease} to 10
+                
+                set {_e4::name} to "looting"
+                set {_e4::base} to WRandom(3, 0.02, 0.18)
+                set {_e4::max} to 3
+                set {_e4::weight} to 25
+                set {_e4::weightDecreasePerLevel} to 10
+                set {_e4::decrease} to 20
+
+            else if {_random.item} is "axe":
+                set {_chance} to a random number between 0 and 1
+                if {_chance} + ({_weight}*(a random number between 0.03 and 0.05)) >= 1:
+                    set {_e1::name} to "minecraft:unburden"
+                    set {_e1::base} to WRandom(3, 0.05, 0.15)
+                    set {_e1::max} to 5
+                    set {_e1::weight} to 150
+                    set {_e1::weightDecreasePerLevel} to 20
+                    set {_e1::decrease} to 40
+                else:
+                    set {_itemtype} to "tool"
+            
+        else if {_itemtype} is "tool":
+            # TOOL ENCHANTS
+            set {_e1::name} to "efficiency"
+            set {_e1::base} to WRandom(3, 0.05, 0.15)
+            set {_e1::max} to 5
+            set {_e1::weight} to 100
+            set {_e1::weightDecreasePerLevel} to 15
+            set {_e1::decrease} to 25
+            
+            set {_e2::name} to "unbreaking"
+            set {_e2::base} to 1
+            set {_e2::max} to 3
+            set {_e2::weight} to 50
+            set {_e2::weightDecreasePerLevel} to 5
+            set {_e2::decrease} to 10
+
+            set {_e3::name} to a random element out of "fortune" and "silk_touch"
+            set {_e3::base} to 0
+            if {_e3::name} is "fortune":
+                set {_chance} to a random number between 0 and 1
+                if {_chance} + ({_weight}*(a random number between 0.03 and 0.05)) >= 1:
+                    set {_e3::base} to WRandom(2, 0.3, 0.4)
+                set {_e3::max} to 3
+                set {_e3::weight} to 25
+                set {_e3::weightDecreasePerLevel} to 10
+                set {_e3::decrease} to 25
+            else:
+                set {_chance} to a random number between 0 and 1
+                if {_chance} + ({_weight}*(a random number between 0.03 and 0.05)) >= 1:
+                    set {_e3::base} to 1
+                set {_e3::max} to 1
+                set {_e3::weight} to 25
+                set {_e3::weightDecreasePerLevel} to 0
+                set {_e3::decrease} to 25
+            
+            set {_e4::base} to 0
+            if {_random.item} is "pickaxe":
+                if {_e3::name} is "silk_touch":
+                    set {_e4::name} to "minecraft:vein_mine"
+                else:
+                    set {_e4::name} to a random element out of "minecraft:vein_mine" and "minecraft:smelter"
+                if {_e4::name} is "minecraft:vein_mine":
+                    set {_chance} to a random number between 0 and 1
+                    if {_chance} + ({_weight}*(a random number between 0.03 and 0.05)) >= 1:
+                        set {_e4::base} to WRandom(2, 0.3, 0.4)
+                    set {_e4::max} to 3
+                    set {_e4::weight} to 25
+                    set {_e4::weightDecreasePerLevel} to 10
+                    set {_e4::decrease} to 25
+                else:
+                    set {_chance} to a random number between 0 and 1
+                    if {_chance} + ({_weight}*(a random number between 0.03 and 0.05)) >= 1:
+                        set {_e4::base} to 1
+                    set {_e4::max} to 1
+                    set {_e4::weight} to 25
+                    set {_e4::weightDecreasePerLevel} to 10
+                    set {_e4::decrease} to 25
+            else if {_random.item} is "axe":
+                set {_e4::name} to "minecraft:lumberjack"
+                set {_chance} to a random number between 0 and 1
+                if {_chance} + ({_weight}*(a random number between 0.03 and 0.05)) >= 1:
+                    set {_e4::base} to WRandom(2, 0.3, 0.4)
+                set {_e4::max} to 3
+                set {_e4::weight} to 25
+                set {_e4::weightDecreasePerLevel} to 10
+                set {_e4::decrease} to 25
+            else if {_random.item} is "hoe":
+                set {_e4::name} to "minecraft:replenish"
+                set {_chance} to a random number between 0 and 1
+                if {_chance} + ({_weight}*(a random number between 0.03 and 0.05)) >= 1:
+                    set {_e4::base} to WRandom(2, 0.3, 0.4)
+                set {_e4::max} to 1
+                set {_e4::weight} to 25
+                set {_e4::weightDecreasePerLevel} to 10
+                set {_e4::decrease} to 25
+            else:
+                set {_e4::name} to "minecraft:excavator"
+                set {_chance} to a random number between 0 and 1
+                if {_chance} + ({_weight}*(a random number between 0.03 and 0.05)) >= 1:
+                    set {_e4::base} to WRandom(2, 0.3, 0.4)
+                set {_e4::max} to 3
+                set {_e4::weight} to 25
+                set {_e4::weightDecreasePerLevel} to 10
+                set {_e4::decrease} to 25
+
+        else if {_itemtype} is "armor":
+            # ARMOR ENCHANTS
+            set {_e1::name} to "protection"
+            set {_e1::base} to WRandom(2, 0.1, 0.4)
+            set {_e1::max} to 4
+            if {_villtype} is "snow":
+                chance of 0.5:
+                    set {_e1::name} to "fire protection"
+            chance of 0.2:
+                set {_e1::name} to a random element out of "blast protection" and "projectile protection"
+            set {_e1::weight} to 80
+            set {_e1::weightDecreasePerLevel} to 10
+            set {_e1::decrease} to 25
+            
+            set {_e2::name} to "unbreaking"
+            set {_e2::base} to 1
+            set {_e2::max} to 3
+            set {_e2::weight} to 60
+            set {_e2::weightDecreasePerLevel} to 5
+            set {_e2::decrease} to 10
+            
+            set {_e3::name} to "thorns"
+            set {_chance} to a random number between 0 and 1
+            set {_e3::base} to WRandom(3, 0.01, 0.05)
+            set {_e3::max} to 3
+            set {_e3::weight} to 30
+            set {_e3::weightDecreasePerLevel} to 5
+            set {_e3::decrease} to 10
+            
+            if {_random.item} is "boots":
+                set {_e4::name} to "feather falling"
+                set {_e4::base} to 0
+                set {_chance} to a random number between 0 and 1
+                if {_chance} + ({_weight}*(a random number between 0.03 and 0.05)) >= 1:
+                    set {_e4::base} to WRandom(2, 0.3, 0.4)
+                set {_e4::max} to 4
+                set {_e4::weight} to 40
+                set {_e4::weightDecreasePerLevel} to 10
+                set {_e4::decrease} to 15
+                
+                set {_e5::base} to 0
+                chance of 0.5:
+                    set {_e5::name} to "depth strider"
+                    set {_chance} to a random number between 0 and 1
+                    if {_chance} + ({_weight}*(a random number between 0.03 and 0.05)) >= 1:
+                        set {_e5::base} to WRandom(2, 0.2, 0.3)
+                    set {_e5::max} to 3
+                    set {_e5::weight} to 40
+                    set {_e5::weightDecreasePerLevel} to 15
+                    set {_e5::decrease} to 25
+                else:
+                    set {_e5::name} to "frost walker"
+                    chance of 0.1:
+                        set {_e5::base} to 1
+                    set {_e5::max} to 2
+                    set {_e5::weight} to 40
+                    set {_e5::weightDecreasePerLevel} to 0
+                    set {_e5::decrease} to 20
+            else if {_random.item} is "helmet":
+                set {_e4::name} to "respiration"
+                set {_e4::base} to 0
+                set {_chance} to a random number between 0 and 1
+                if {_chance} + ({_weight}*(a random number between 0.03 and 0.05)) >= 1:
+                    set {_e4::base} to WRandom(2, 0.2, 0.3)
+                set {_e4::max} to 3
+                set {_e4::weight} to 40
+                set {_e4::weightDecreasePerLevel} to 15
+                set {_e4::decrease} to 25
+
+                set {_e5::name} to "aqua affinity"
+                set {_e5::base} to 0
+                set {_chance} to a random number between 0 and 1
+                if {_chance} + ({_weight}*(a random number between 0.03 and 0.05)) >= 1:
+                    set {_e5::base} to 1
+                set {_e5::max} to 1
+                set {_e5::weight} to 20
+                set {_e5::weightDecreasePerLevel} to 0
+                set {_e5::decrease} to 0
+        
+        # ===== ENCHANT ROLLING SYSTEM =====
+        set {_success.rate} to 50 + {_luck}*10
+        set {_remaining.luck} to {_luck}
+        set {_successful} to 0
+        
+        # Build enchant list (ALL enchants, even base = 0 can be rolled)
+        clear {_active.enchants::*}
+        set {_num} to 1
+        while {_e%{_num}%::base} is set:
+            add ((-1)*{_e%{_num}%.weightDecreasePerLevel}*{_e%{_num}%::base}) to {_e%{_num}%::weight}
+            add {_num} to {_active.enchants::*}
+            set {_current.level::%{_num}%} to {_e%{_num}%::base}
+            set {_current.weight::%{_num}%} to {_e%{_num}%::weight}
+            add 1 to {_num}
+            delete {_e%{_num}-1%::base}
+        
+        # Roll enchants using luck points
+        set {_heart.count} to 0
+        while {_remaining.luck} > 0:
+            set {_roll} to a random number between 1 and 100
+            
+            if {_roll} <= {_success.rate}:
+                # Calculate total weight (skip enchants with weight = 0 or already at max level)
+                set {_total.weight} to 0
+                loop {_active.enchants::*}:
+                    set {_num} to loop-value-2
+                    set {_w} to {_current.weight::%{_num}%}
+                    # Only include if weight > 0 AND not at max level
+                    if {_w} > 0:
+                        if {_current.level::%{_num}%} < {_e%{_num}%::max}:
+                            add {_w} to {_total.weight}
+                
+                # Only roll if there are enchants available
+                if {_total.weight} > 0:
+                    # Weighted random selection
+                    set {_weighted.roll} to a random integer between 1 and {_total.weight}
+                    set {_current.sum} to 0
+                    
+                    loop {_active.enchants::*}:
+                        set {_num} to loop-value-2
+                        set {_w} to {_current.weight::%{_num}%}
+                        # Only select if weight > 0 AND not at max level
+                        if {_w} > 0:
+                            if {_current.level::%{_num}%} < {_e%{_num}%::max}:
+                                add {_w} to {_current.sum}
+                                if {_weighted.roll} <= {_current.sum}:
+                                    set {_chosen} to {_num}
+                                    exit loop
+                    
+                    # Upgrade chosen enchant
+                    add 1 to {_current.level::%{_chosen}%}
+                    add 1 to {_successful}
+                    # Calculate heart count chance based on success rate and max level
+                    # Base chance từ success rate (10-100 -> 0.1-1.0)
+                    set {_heart.chance} to ({_success.rate} / 100)*0.75
+                    
+                    # Bonus nếu đạt max level
+                    if {_current.level::%{_chosen}%} >= {_e%{_chosen}%::max}:
+                        # Tăng 30-50% chance khi đạt max level
+                        set {_max.level.bonus} to a random number between 0.2 and 0.4
+                        set {_heart.chance} to min(1, {_heart.chance} + {_max.level.bonus})
+                    
+                    # Roll để tăng heart count
+                    set {_heart.roll} to a random number between 0 and 1
+                    if {_heart.roll} <= {_heart.chance}:
+                        add 1 to {_heart.count}
+                    
+                    # Decrease weight for next roll
+                    set {_current.weight::%{_chosen}%} to {_current.weight::%{_chosen}%} - {_e%{_chosen}%::decrease}
+            
+            add -1 to {_remaining.luck}
+            set {_success.rate} to max(10, {_success.rate} - 10 - ({_successful}*5))
+        
+        # ===== APPLY ENCHANTS TO ITEM =====
+        set {_count} to 1
+        loop {_active.enchants::*}:
+            set {_num} to loop-value-2
+            set {_ench.name} to {_e%{_num}%::name}
+            set {_ench.level} to {_current.level::%{_num}%}
+            
+            # Only apply if level > 0
+            if {_ench.level} > 0:
+                set {_final} to "%{_ench.name}% %{_ench.level}%" parsed as enchantment type
+                enchant {_result} with {_final}
+                add {_ench.level} to {_count}
+        
+        if {_material} is "iron":
+            set {_random} to min(a random number between 1 and 1.5, max((a random number between 1.5 and 2)-{_luck}*0.1,1))
+            add round({_random}*{_count}) of {adven} to {_i::*}
+        else:
+            set {_random} to min(a random number between 0.8 and 1, max((a random number between 1 and 1.2)-{_luck}*0.1,0.75))
+            add round({_random}*{_count}) of {adven} to {_i::*}
+        if {_heart.count} > 0:
+            add {_heart.count} of {heart} to {_i::*}
+
+        # Create merchant recipe
+        set {_recipe} to new merchant recipe with result {_result} with max uses 1
+        set ingredients of merchant recipe {_recipe} to {_i::*}
+        add {_recipe} to merchant recipes of {_merchant}
+        clear {_i::*}
+        chance of 0.2:
+            set {_count} to WRandom(2, 0.3, 0.4)
+            add {_count} of {adven} to {_i::*}
+            set {_result} to an enchanted book named "&a&lMagical Book"
+            set {_chance} to a random integer between 1 and 4
+            chance of 0.1:
+                add {heart} to {_i::*}
+                if {_chance} = 1:
+                    set lore of {_result} to "&r&eadditional enchantment: &c&ofire aspect"
+                else if {_chance} = 2:
+                    set lore of {_result} to "&r&eadditional enchantment: &b&osweeping edge"
+                else if {_chance} = 3:
+                    set lore of {_result} to "&r&eadditional enchantment: <#FF9B7D>&oflame"
+                else:
+                    set lore of {_result} to "&r&eadditional enchantment: &6&oinfinity"
+            set {_recipe} to new merchant recipe with result {_result} with max uses 1
+            set ingredients of merchant recipe {_recipe} to {_i::*}
+            add {_recipe} to merchant recipes of {_merchant}
+
+    return {_merchant}
+
+on right click on villager:
+    if event-entity doesn't have scoreboard tag "trader":
+        if event-entity doesn't have scoreboard tag "trader2":
+            cancel event
+            stop
+    set {_v} to vector between target and player
+    set y of {_v} to 0
+    set {_v0} to vector(0, 0, 1)
+    set {_angle} to angle between {_v} and {_v0}
+    if x-coord of player < x-coord of target:
+        set yaw of target to {_angle}
+    else:
+        set yaw of target to {_angle} * -1
+    set {_huyen} to the distance between target and player
+    set {_doi} to y-coord of target + 0.2 - y-coord of player
+    set pitch of target to asin({_doi}/{_huyen})
+    if event-entity doesn't have scoreboard tag "activated":
+        if event-entity has the scoreboard tag "ocean":
+            if player's inventory contain {ocean}:
+                send "&eÔi bạn thực sự giành lại được nó!&aĐược, đây sẽ là nơi làm ăn mới của tôi!" to player
+                remove 1 of {ocean} from player
+                add "activated" to scoreboard tags of target
+                restock(target)
+        else if event-entity has the scoreboard tag "swamp":
+            if player's inventory contain {swamp}:
+                send "&eÔi bạn thực sự giành lại được nó!&aĐược, đây sẽ là nơi làm ăn mới của tôi!" to player
+                remove 1 of {swamp} from player
+                add "activated" to scoreboard tags of target
+                restock(target)
+        else if event-entity has the scoreboard tag "mountain":
+            if player's inventory contain {mountain}:
+                send "&eÔi bạn thực sự giành lại được nó!&aĐược, đây sẽ là nơi làm ăn mới của tôi!" to player
+                remove 1 of {mountain} from player
+                add "activated" to scoreboard tags of target
+                restock(target)
+        cancel event
+        stop
+    if target has the scoreboard tag "trader":
+        if player is holding feather in main hand:
+            set {_m} to player's main hand
+        else if player is holding feather in off hand:
+            set {_m} to player's off hand
+        if {_m}'s lore contain "poke":
+            play sound "entity.allay.ambient_with_item" with volume 5 with pitch 0.5 at target
+            remove 1 of {_m} from player
+            restock(target)
+            cancel event
+            stop
+        set {_id} to uuid of target
+        if {restock::*} doesn't contain {_id}:
+            add {_id} to {restock::*}
+            set {restock.%{_id}%} to true
+        if {restock.%{_id}%} is true:
+            set {restock.%{_id}%} to false
+            restock(target)
+            cancel event
+    else if target has the scoreboard tag "trader2":
+        if target has the scoreboard tag "snow":
+            if name of player's main hand is "&e&oSnow Task Ticket #%{trader2::snow::taskcount}%":
+                if line 1 of lore of player's main hand is "&7registered ticket: %player%":
+                    cancel event
+                    if {trader2::snow::private} is set:
+                        if {trader2::snow::private} is not player:
+                            send "&cNgười chơi &e%{trader2::snow::private}% &cđã đăng ký vé private cho lượt trade này!" to player
+                            stop
+                    if {trader2::snow::team} is true:
+                        if {trader2::snow::general.donetrade} is true:
+                            if {trader2::snow::donemain} is true:
+                                if {trader2::snow::doneside} is true:
+                                    if {trader2::snow::general.RewardMerchant} is not set:
+                                        set {trader2::snow::general.RewardMerchant} to taskRewardMerchant(player, "snow", {trader2::snow::RewardWeight}, false)
+                                    open merchant {trader2::snow::general.RewardMerchant} to player
+                                    stop
+                        open merchant {trader2::snow::general.trade} to player
+                    else:
+                        if {trader2::snow::participants::%player%::donetrade} is true:
+                            if {trader2::snow::participants::%player%::donemain} is true:
+                                if {trader2::snow::participants::%player%::doneside} is true:
+                                    if {trader2::snow::participants::%player%::RewardMerchant} is not set:
+                                        set {trader2::snow::participants::%player%::RewardMerchant} to taskRewardMerchant(player, "snow", {trader2::snow::RewardWeight}, true)
+                                    open merchant {trader2::snow::participants::%player%::RewardMerchant} to player
+                                    stop
+                        open merchant {trader2::snow::participants::%player%::trade} to player
+                    stop
+            if {trader2::snow::taskcount} is not greater than 0:
+                set {trader2::snow::taskcount} to 1
+                set {trader2::snow::restock} to true
+            if {trader2::snow::restock} is true:
+                cancel event
+                set {trader2::snow::restock} to false
+                restock(target)
+                set {trader2::snow::cancel} to false
+                set {trader2::snow::RewardWeight} to 0
+                delete {trader2::snow::participants::*}
+                delete {trader2::snow::private}
+                set {trader2::snow::diff.adder} to 0
+                set {trader2::snow::days.adder} to 0
+                set {_team.chance} to a random number between 0 and 1
+                if {_team.chance} <= 0.75:
+                    delete {trader2::snow::general.havetask}
+                    delete {trader2::snow::general.trade}
+                    delete {trader2::snow::general.RewardMerchant}
+                    set {trader2::snow::general.donetrade} to false
+                    chance of 0.5:
+                        add 1 to {trader2::snow::diff.adder}
+                    set {trader2::snow::team} to true
+                    set {trader2::snow::participants::playercount} to 0
+                else:
+                    set {trader2::snow::team} to false
+
+at 7:00 in "world":
+    broadcast "&aTất cả trader đã tiến hành restock!"
+    set {cantrade.zb2.chance} to 3
+    loop {restock::*}:
+        set {restock.%loop-value%} to true
+        set {cantrade.zb2.%loop-value%} to true
+    add -1 to {trader2::snow::days}
+    if {trader2::snow::days} <= 0:
+        if {trader2::snow::days} = 0:
+            broadcast "&cĐã hết hạn trả task của Snow Trader!"
+        set {trader2::snow::restock} to true
+        add 1 to {trader2::snow::taskcount}
+
+on death of villager:
+    set {_id} to uuid of victim
+    remove uuid of victim from {restock::*}
+    delete {restock.%{_id}%}
+    delete {cantrade.zb2.%{_id}%}
+
+on player purchase:
+    if event-living entity has the scoreboard tag "snow":
+        if name of (result of merchant recipe event-merchant recipe) contain "&e&oSnow Task Ticket": #%{trader2::snow::taskcount}%":
+            if {trader2::snow::private} is set:
+                if {trader2::snow::private} is not player:
+                    send "&cNgười chơi &e%{trader2::snow::private}% &cđã đăng ký vé private cho lượt trade này!" to player
+                    cancel event
+                    stop
+            if {trader2::snow::cancel} is false:
+                set {WeakBossDropHeart} to true
+                set {trader2::snow::haveside} to true
+                set {trader2::snow::diff} to a random integer between 1 and 2
+                set {_days.chance} to a random number between 0 and 1
+                if {trader2::snow::diff} = 2:
+                    add -0.3 to {_days.chance}
+                if {_days.chance} < -0.2:
+                    set {trader2::snow::days} to 3
+                else if {_days.chance} < 0.3:
+                    set {trader2::snow::days} to 2
+                else:
+                    set {trader2::snow::haveside} to false
+                    set {trader2::snow::days} to 1
+                add {trader2::snow::diff.adder} to {trader2::snow::diff}
+                add {trader2::snow::days.adder} to {trader2::snow::days}
+                add {trader2::snow::diff} to {trader2::snow::RewardWeight}
+                set {trader2::snow::cancel} to true
+            stop
+        else if {trader2::snow::cancel} is true:
+            send "&cVé cho ngày hôm nay đã được mua, bạn không thể thay đổi các tùy chỉnh nữa!" to player
+            cancel event
+            stop
+        if item model of (result of merchant recipe event-merchant recipe) is "minecraft:ominous_bottle":
+            set {boss::zb2::drophead} to true
+            set {trader2::snow::diff.adder} to 1 + WRandom(2, 0.2, 0.2)
+        else if item model of (result of merchant recipe event-merchant recipe) is "minecraft:clock":
+            set {trader2::snow::days.adder} to 1 + WRandom(2, 0.1, 0.3)
+        else if item model of (result of merchant recipe event-merchant recipe) is "minecraft:trial_key":
+            set {trader2::snow::private} to player
+            add 2 to {trader2::snow::RewardWeight}
+    else if event-living entity is not set:
+        set {_m} to "%type of result of merchant recipe event-merchant recipe%"
+        if {_m} contain "iron":
+            set {_m} to {_m} parsed as item
+            if player's off hand is {_m}:
+                delete player's off hand
+            else:   
+                send "&cBạn cần món đồ sắt tương ứng ở trái tay!" to player
+                cancel event
+            stop
+        if {trader2::snow::team} is true:
+            wait 1 tick
+            loop merchant recipes of {trader2::snow::general.trade}:
+                if loop-value is event-merchant recipe:
+                    set {_legit} to true
+                if merchant recipe uses of loop-value < merchant recipe max uses of loop-value:
+                    stop
+            if {_legit} is true:
+                set {trader2::snow::general.donetrade} to true
+        else:
+            wait 1 tick
+            loop merchant recipes of {trader2::snow::participants::%player%::trade}:
+                if loop-value is event-merchant recipe:
+                    set {_legit} to true
+                if merchant recipe uses of loop-value < merchant recipe max uses of loop-value:
+                    stop
+            if {_legit} is true:
+                set {trader2::snow::participants::%player%::donetrade} to true
+
+on right click:
+    if name of player's main hand is "&e&oSnow Task Ticket #%{trader2::snow::taskcount}%":
+        if {trader2::snow::days} > 0:
+            if {trader2::snow::private} is set:
+                if {trader2::snow::private} is not player:
+                    send "&cNgười chơi &e%{trader2::snow::private}% &cđã đăng ký vé private cho lượt trade này!" to player
+                    stop
+            if line 2 of lore of main hand of player is not set:
+                set line 1 of lore of player's main hand to "&7registered ticket: %player%"
+                set item model of player's main hand to "minecraft:filled_map"
+                play sound "ui.cartography_table.take_result" with volume 2 to player
+                if {trader2::snow::participants::%player%} is not set:
+                    set {trader2::snow::participants::%player%} to player
+                    add 1 to {trader2::snow::participants::playercount}
+                if {trader2::snow::participants::%player%} is set:
+                    if {trader2::snow::team} is true:
+                        if {trader2::snow::general.havetask} is not set:
+                            set {trader2::snow::general.havetask} to true
+                        if {trader2::snow::general.havetask} is true:
+                            set {trader2::snow::general.havetask} to false
+                            set {trader2::snow::general.trade} to taskmerchant(player, "snow",  {trader2::snow::diff}, true, false)
+                            set {trader2::snow::donemain} to true
+                            set {trader2::snow::doneside} to true
+                            taskscore(player, "snow", true, true, false)
+                    else:
+                        if {trader2::snow::participants::%player%::havetask} is not set:
+                            set {trader2::snow::participants::%player%::havetask} to true
+                        if {trader2::snow::participants::%player%::havetask} is true:
+                            set {trader2::snow::participants::%player%::havetask} to false
+                            set {trader2::snow::participants::%player%::trade} to taskmerchant(player, "snow",  {trader2::snow::diff}, false, true)
+                            set {trader2::snow::participants::%player%::donemain} to true
+                            set {trader2::snow::participants::%player%::doneside} to true
+                            set {_willbetrue::1} to false
+                            set {_willbetrue::2} to false
+                            if {trader2::snow::days} > 1:
+                                set {_index} to a random integer between 1 and 2
+                                set {_willbetrue::%{_index}%} to true
+                                if {trader2::snow::diff} > 2:
+                                    set {_willbetrue::1} to true
+                                    set {_willbetrue::2} to true
+                            else:
+                                if {trader2::snow::diff} > 2:
+                                    set {_willbetrue::2} to true
+                            taskscore(player, "snow", {_willbetrue::1}, {_willbetrue::2}, true)
+            set line 2 of lore of player's main hand to "&eThời gian còn lại: %{trader2::snow::days}% ngày"
+            if line 1 of lore of player's main hand is not "&7registered ticket: %player%":
+                stop
+            if {trader2::snow::team} is true:
+                set line 3 of lore of player's main hand to "&a&lNhiệm vụ đồng đội:"
+                if {trader2::snow::general.donetrade} is not true:
+                    set line 4 of lore of player's main hand to "&cChưa hoàn thành trade được yêu cầu!"
+                else:
+                    set line 4 of lore of player's main hand to "&aĐã hoàn thành trade được yêu cầu!"
+                if {trader2::snow::mainscore} is set:
+                    set {trader2::snow::maincurrent} to 0
+                    loop {trader2::snow::participants::*}:
+                        add score of "%loop-value%" for objective with id "snow_main" to {trader2::snow::maincurrent}
+                    if {trader2::snow::maincurrent} >= {trader2::snow::mainscore}:
+                        set {trader2::snow::donemain} to true
+                        set {_scoredisplay} to "&a"
+                    else:
+                        set {_scoredisplay} to "&e"
+                    set line 5 of lore of player's main hand to formatted "&d%{trader2::snow::maindisplay}%: %{_scoredisplay}%%{trader2::snow::maincurrent}%&7/%{_scoredisplay}%%{trader2::snow::mainscore}%"
+                if {trader2::snow::sidescore} is set:
+                    set {trader2::snow::sidecurrent} to 0
+                    loop {trader2::snow::participants::*}:
+                        add score of "%loop-value%" for objective with id "snow_side" to {trader2::snow::sidecurrent}
+                    if {trader2::snow::sidecurrent}/100 >= {trader2::snow::sidescore}:
+                        set {trader2::snow::doneside} to true
+                        set {_scoredisplay} to "&a"
+                    else:
+                        set {_scoredisplay} to "&e"
+                    set line 6 of lore of player's main hand to formatted "&b%{trader2::snow::sidedisplay}%: %{_scoredisplay}%%{trader2::snow::sidecurrent}/100%&7/%{_scoredisplay}%%{trader2::snow::sidescore}%"
+            else:
+                set line 3 of lore of player's main hand to "&a&lNhiệm vụ cá nhân:"
+                if {trader2::snow::participants::%player%::donetrade} is not true:
+                    set line 4 of lore of player's main hand to "&cChưa hoàn thành trade được yêu cầu!"
+                else:
+                    set line 4 of lore of player's main hand to "&aĐã hoàn thành trade được yêu cầu!"
+                if {trader2::snow::participants::%player%::mainscore} is set:
+                    set {trader2::snow::participants::%player%::maincurrent} to score of player for objective with id "snow_main_%player%"          
+                    if {trader2::snow::participants::%player%::maincurrent} >= {trader2::snow::participants::%player%::mainscore}:
+                        set {trader2::snow::participants::%player%::donemain} to true
+                        set {_scoredisplay} to "&a"
+                    else:
+                        set {_scoredisplay} to "&e"   
+                    set line 5 of lore of player's main hand to formatted "&d%{trader2::snow::participants::%player%::maindisplay}%: %{_scoredisplay}%%{trader2::snow::participants::%player%::maincurrent}%&7/%{_scoredisplay}%%{trader2::snow::participants::%player%::mainscore}%"            
+                if {trader2::snow::participants::%player%::sidescore} is set:                   
+                    set {trader2::snow::participants::%player%::sidecurrent} to score of player for objective with id "snow_side_%player%"                   
+                    if {trader2::snow::participants::%player%::sidecurrent}/100 >= {trader2::snow::participants::%player%::sidescore}:
+                        set {trader2::snow::participants::%player%::doneside} to true
+                        set {_scoredisplay} to "&a"
+                    else:
+                        set {_scoredisplay} to "&e"
+ 
+                    set line 6 of lore of player's main hand to formatted "&b%{trader2::snow::participants::%player%::sidedisplay}%: %{_scoredisplay}%%{trader2::snow::participants::%player%::sidecurrent}/100%&7/%{_scoredisplay}%%{trader2::snow::participants::%player%::sidescore}%"
+            stop
+    if name of player's main hand contain "Snow Task Ticket":
+        if line 2 of lore of main hand of player contain "Thời gian còn lại":
+            set line 2 of lore of main hand of player to "&cVé này đã hết hạn sử dụng! Hãy tìm mua vé mới!"
+            stop
+        else:
+            loop lore of player's main hand:
+                if loop-value is "&cVé này đã hết hạn sử dụng! Hãy tìm mua vé mới!":
+                    stop
+            set line 1 of lore of player's main hand to "&cVé này đã hết hạn sử dụng! Hãy tìm mua vé mới!"
+
+on death:
+    if {WeakBossDropHeart} is true:
+        set {_random} to a random element out of "zb1", "sb1", "spb1", "cb1" and "dm1"
+        if victim has scoreboard tag {_random}:
+            drop {heart} at victim
+            chance of 0.75:
+                set {WeakBossDropHeart} to false
+    if victim has scoreboard tag "zb2":
+        drop {heart}
+        if {boss::zb2::drophead} is true:
+            set {boss::zb2::drophead} to false
+            drop {zb2head}
+
+command /taskcount [<number>]:
+    permission: op
+    trigger:
+        if arg-1 is not set:
+            set {trader2::snow::taskcount} to 0
+        else:
+            set {trader2::snow::taskcount} to arg-1
+
+command /testmerchant:
+    permission: op
+    trigger:
+        set {_m} to a zombie head named "&2&lZombie Boss II&e's head"
+        apply attribute modifier to {_m}:
+            id: "custom:armor"
+            attribute: armor
+            amount: 3
+            slot: head_slot_group
+            operation: add_number
+        apply attribute modifier to {_m}:
+            id: "custom:armor_toughness"
+            attribute: armor toughness
+            amount: 3
+            slot: head_slot_group
+            operation: add_number
+        apply attribute modifier to {_m}:
+            id: "custom:knockback_resistance"
+            attribute: knockback resistance
+            amount: 0.2
+            slot: head_slot_group
+            operation: add_number
+        apply attribute modifier to {_m}:
+            id: "custom:health"
+            attribute: max health
+            amount: 4
+            slot: head_slot_group
+            operation: add_number
+        apply attribute modifier to {_m}:
+            id: "custom:damage"
+            attribute: attack damage
+            amount: 1
+            slot: head_slot_group
+            operation: add_number
+        apply attribute modifier to {_m}:
+            id: "custom:break_speed"
+            attribute: block break speed
+            amount: 0.5
+            slot: head_slot_group
+            operation: add_number
+        apply attribute modifier to {_m}:
+            id: "custom:movement"
+            attribute: movement speed
+            amount: -0.02
+            slot: head_slot_group
+            operation: add_number
+        apply attribute modifier to {_m}:
+            id: "custom:attack_speed"
+            attribute: attack speed
+            amount: -0.2
+            slot: head_slot_group
+            operation: add_number
+        give player 1 of {_m}

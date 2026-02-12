@@ -1,0 +1,28 @@
+on skript start:    
+    execute console command "/scoreboard objectives add count_skill1 dummy"
+    execute console command "/scoreboard objectives add count_boss dummy"
+
+    set {can.join} to false
+
+on connect:
+    if {can.join} is false:
+        player doesn't have permission "op"
+        kick the player due to "&eServer vừa mới restart nên có thể có một vài dữ liệu bị mất, điều này yêu cầu một vài sự bảo trì, bạn hãy chờ hoặc liên hệ &4Owner &enhé!"
+
+on join:
+    player has permission "op"
+    wait 100 ticks
+    if {can.join} is false:
+        message "&eServer đang trong trạng thái bảo trì, &cmau hành động để mở lại server!"
+
+command /AllowJoin:
+    permission: op
+    trigger:
+        set {can.join} to true
+        message "&eĐã bật khả năng vào server của non-op!" to sender
+
+command /DisallowJoin:
+    permission: op
+    trigger:
+        set {can.join} to false
+        message "&eĐã tắt khả năng vào server của non-op!" to sender

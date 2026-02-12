@@ -1,0 +1,221 @@
+on quit:
+    loop all living entities:
+        if loop-entity has the scoreboard tag "boss":
+            if loop-entity's target is event-player:
+                if distance between loop-entity and event-player < 50:
+                    kill event-player
+
+on spawn of zombie, zombie villager, witch, stray, skeleton, husk, creeper, drowned, spider, enderman or bogged:
+    if spawn reason is natural or reinforcements:
+        set {_xz.max} to max(abs(x-coord of entity), abs(z-coord of entity))
+        set {_buff.health} to max health of entity / 2
+        if {_xz.max} > 500:
+            if entity doesn't have scoreboard tag "buffed_0":
+                set max health of entity to {_buff.health} + max health of entity
+                set health of entity to {_buff.health} + max health of entity
+                add "buffed_0" to scoreboard tags of entity 
+        if {_xz.max} > 1000:
+            if entity doesn't have scoreboard tag "buffed_1":
+                set max health of entity to {_buff.health} + max health of entity
+                set health of entity to {_buff.health} + max health of entity
+                if entity is a zombie:
+                    set {_zum} to true
+                else if entity is a zombie villager:
+                    set {_zum} to true
+                else if entity is a husk:
+                    set {_zum} to true
+                else if entity is a creeper:
+                    set {_other} to true
+                else if entity is a witch:
+                    set {_other} to true
+                else if entity is a skeleton:
+                    set {_ske} to true
+                else if entity is a stray:
+                    set {_ske} to true
+                else if entity is a bogged:
+                    set {_ske} to true
+                if {_zum} is true:
+                    chance of 20%:
+                        set entity's armor attribute to 4
+                    chance of 20%:
+                        set entity's attack damage attribute to 5
+                    chance of 20%:
+                        set entity's movement speed attribute to 0.3
+                    chance of 20%:
+                        set entity's knockback resistance attribute to 0.5
+                    chance of 20%:
+                        set entity's step height attribute to 1
+                else if {_other} is true:
+                    chance of 20%:
+                        set entity's movement speed attribute to 0.35
+                    chance of 20%:
+                        set entity's scale attribute to 0.75
+                    chance of 20%:
+                        set entity's knockback resistance attribute to 0.5
+                else if entity is a drowned:
+                    chance of 20%:
+                        set entity's armor attribute to 4
+                    chance of 20%:
+                        set entity's attack damage attribute to 5
+                    chance of 20%:
+                        set entity's movement speed attribute to 0.3
+                    chance of 20%:
+                        set entity's knockback resistance attribute to 0.5
+                    chance of 20%:
+                        set entity's water movement efficiency attribute to 0.2
+                else if entity is a spider:
+                    chance of 50%:
+                        set max health of entity to {_buff.health} + max health of entity
+                        set health of entity to {_buff.health} + max health of entity
+                    chance of 20%:
+                        set entity's armor attribute to 2
+                    chance of 20%:
+                        set entity's movement speed attribute to 0.35
+                    chance of 20%:
+                        set entity's knockback resistance attribute to 0.5
+                else if {_ske} is true:
+                    chance of 20%:
+                        set entity's armor attribute to 2
+                    chance of 20%:
+                        set entity's movement speed attribute to 0.3
+                    chance of 20%:
+                        set entity's knockback resistance attribute to 0.5
+                    chance of 20%:
+                        set entity's water movement efficiency attribute to 0.2
+                else:
+                    chance of 20%:
+                        set entity's armor attribute to 2
+                    chance of 50%:
+                        set max health of entity to {_buff.health} + max health of entity
+                        set health of entity to {_buff.health} + max health of entity
+                    chance of 50%:
+                        set max health of entity to {_buff.health} + max health of entity
+                        set health of entity to {_buff.health} + max health of entity
+                add "buffed_1" to scoreboard tags of entity
+
+on target:
+    if entity has scoreboard tag "buffed_1":
+        if target has scoreboard tag "buffed_1":
+            cancel event
+
+on vehicle enter:
+    if event-entity has the scoreboard tag "buffed_1":
+        delete event-vehicle
+        make entity swing main hand
+        cancel event
+
+on explosion prime:
+    if event-entity is creeper:
+        if event-entity has the scoreboard tag "buffed_1":
+            chance of 25%:
+                cancel event
+                delete event-entity
+                create an explosion of force 5 at entity
+
+on projectile hit:
+    if victim has the scoreboard tag "buffed_1":
+        if shooter is a player:
+            chance of 20%:
+                set ai of victim to false
+                set {_loc.att} to location of shooter
+                play sound "block.portal.trigger" with volume 2 at {_loc.att}
+                draw 50 trial_spawner_detection_ominous at victim with offset vector(1, 2, 1) with extra 0
+                draw 50 trial_spawner_detection_ominous at {_loc.att} with offset vector(1, 2, 1) with extra 0
+                wait 1 second
+                teleport victim to {_loc.att}
+                set ai of victim to true
+                set victim's target to shooter
+
+on damage:
+    if attacker has the scoreboard tag "buffed_1":
+        if victim is defending:
+            chance of 20%:
+                set {_held} to attacker's main hand
+                set attacker's main hand to wooden axe
+                wait 1 tick
+                make attacker attack victim
+                set attacker's main hand to {_held}
+    else if victim has the scoreboard tag "buffed_1":
+        if attacker is not a player, wolf, spider, cave spider, drowned or iron golem:
+            cancel event
+        else:
+            if damage cause is an entity explosion or block explosion:
+                cancel event
+                stop
+            chance of 20%:
+                set victim's target to attacker
+            if victim is a zombie, zombie villager, stray, skeleton, husk, creeper, drowned or bogged:
+                set {_block.att} to location of block at attacker
+                set {_block.vic} to location of block at victim
+                if y-coord of {_block.vic} - y-coord of victim <= 0.48:
+                    add 1 to y-coord of {_block.vic}
+                set {_delta} to max(abs(x-coord of {_block.att} - x-coord of {_block.vic}), abs(z-coord of {_block.att} - z-coord of {_block.vic}))
+                if y-coord of block at attacker - y-coord of {_block.vic} - {_delta} > 0.9:
+                    jump_build(victim, oak planks, 20)
+                    stop
+                set {_v} to velocity of victim
+                set y of {_v} to 0
+                set {_v} to normalized {_v}
+                set {_loc} to location of block at victim
+                set {_loc2} to {_loc} ~ {_v}
+                if y-coord of block at victim - y-coord of victim <= 0.48:
+                    add 1 to y-coord of {_loc}
+                add 1 to y-coord of {_loc}
+                set {_delta.x} to x-coord of victim - x-coord of {_loc}
+                set {_delta.z} to z-coord of victim - z-coord of {_loc}
+                if {_delta.x} > 0.2:
+                    add 1 to x-coord of {_loc}
+                else if {_delta.x} < 0.2:
+                    add -1 to x-coord of {_loc}
+                if {_delta.z} > 0.2:
+                    add 1 to z-coord of {_loc}
+                else if {_delta.z} < 0.2:
+                    add -1 to z-coord of {_loc}
+                loop blocks within {_loc} and {_loc2}:
+                    if loop-block is tagged with tag "minecraft:can_trap":
+                        iron_break_as(victim, loop-block, 20)
+                        stop
+                chance of 20%:
+                    get_to_target(victim, dirt, 20, true)
+                    stop
+            else if victim is a creeper:
+                chance of 5%:
+                    start explosion process of victim
+            else if victim is a spider:
+                chance of 20%:
+                    set {_corner1} to location of block at victim
+                    set {_corner2} to location of block at victim
+                    add -1 to x-coord of {_corner1}
+                    add -1 to y-coord of {_corner1}
+                    add -1 to z-coord of {_corner1}
+                    add 1 to x-coord of {_corner2}
+                    add 1 to y-coord of {_corner2}
+                    add 1 to z-coord of {_corner2}
+                    loop blocks within {_corner1} and {_corner2}:
+                        if loop-block is not bedrock, obsidian, spawner or crying obsidian:
+                            break loop-block naturally
+            if victim is not a drowned:
+                if victim is in water:
+                    chance of 20%:
+                        dry(victim, 4)
+
+on zombie or husk transform:
+    if entity doesn't have scoreboard tags "buffed_1":
+        stop
+    cancel event
+    dry(entity, 4)
+                
+on death:
+    if victim doesn't have scoreboard tags "buffed_1":
+        stop
+    if attacker is a player:
+        if attacker's main hand is enchanted with looting 3:
+            set {_chance} to a random integer between 1 and 20
+        else if attacker's main hand is enchanted with looting 2:
+            set {_chance} to a random integer between 1 and 30
+        else if attacker's main hand is enchanted with looting 1:
+            set {_chance} to a random integer between 1 and 40
+        else:
+            set {_chance} to a random integer between 1 and 50
+        if {_chance} = 1:
+            drop_loot(location of victim)

@@ -1,0 +1,127 @@
+on damage of drowned by player:
+    if victim doesn't have the scoreboard tag "dm1":
+        if victim is holding a trident:
+            if attacker's inventory contain a nautilus shell:
+                #spawn
+                #make 50 of flame at victim
+                play sound "entity.ender_dragon.growl" with volume 2 at the victim
+                make 30 of flame at victim with offset vector(1, 2, 1) with extra 0.5
+                #strike lightning at victim
+                #Chạy hiệu ứng khác so với boss thường
+
+                remove 1 nautilus shell from attacker 
+                apply infinite glowing potion of tier 1 to victim
+
+                set {_loc} to location of victim
+                set {_dm1.x} to round(x-coord of {_loc})
+                set {_dm1.z} to round(z-coord of {_loc})
+
+                set {_uuid} to uuid of victim
+                set {drowned::%{_uuid}%::timer} to 0
+
+                set {drowned::%{_uuid}%::bar} to bossbar named "%{_uuid}%" with title "&bDrowned Mini Boss I" with color aqua with style segmented 10
+                add attacker to {drowned::%{_uuid}%::bar}
+
+                broadcast "&cAi đó đã triệu hồi &bDrowned Mini Boss I tại tọa độ &e%{_dm1.x}% %{_dm1.z}%&c!"
+
+                execute console command "/scoreboard players add count_dm1 count_boss 1"
+
+                add "dm1" to the scoreboard tags of victim
+                set weather in "world" to thunder
+                #HP
+                set victim's max health to 50
+                set victim's health to 50
+
+                set custom name of victim to "&bDrowned Mini Boss I"
+
+                #equipment
+                equip victim with chainmail helmet
+                equip victim with chainmail chestplate
+                equip victim with chainmail leggings
+                equip victim with chainmail boots
+                set victim's held item to trident of channeling
+
+on damage of drowned:
+    if victim has the scoreboard tag "dm1":
+        if attacker is not a player:
+            cancel event
+        else:
+            set {_uuid} to uuid of victim
+            set {drowned::%{_uuid}%::timer} to 0
+            set {_loc} to location of victim
+
+            set bar progress of {drowned::%{_uuid}%::bar} to victim's health * 100 / victim's max health
+            add attacker to bossbar named "%{_uuid}%"
+        
+every 1 seconds:
+    execute console command "/execute if score count_dm1 count_boss matches 1.. run minicheck"
+ 
+on projectile launch:
+    if shooter has the scoreboard tag "dm1":
+        chance of 20%:
+            set {_uuid} to uuid of shooter
+            set event-projectile's custom name to "%uuid of shooter%"
+            hide event-projectile's custom name
+            set {drowned::%{_uuid}%::var} to shooter
+
+on projectile hit:
+    set {_uuid} to uuid of shooter
+    if event-projectile's custom name is "%uuid of shooter%":
+        if victim is not a player:
+            set {_grab} to location of event-projectile
+            set {_pulling} to true
+            set {_break} to 0
+            push {drowned::%{_uuid}%::var} up with speed 0.5
+            while {_pulling} is true:
+                set {_loc} to location of {drowned::%{_uuid}%::var}
+                if y-coord of {_loc} - y-coord of {_grab} < -0.5:
+                    push {drowned::%{_uuid}%::var} up with speed 0.2
+                pull {drowned::%{_uuid}%::var} towards {_grab} with speed 0.3
+                set {_break} to {_break} + 1
+                if distance between {drowned::%{_uuid}%::var} and event-projectile < 1:
+                    set {_pulling} to false
+                    delete event-projectile
+                if {_break} > 100:
+                    set {_pulling} to false
+                    delete event-projectile
+                wait 1 tick
+
+        if victim is a player:
+            set {drowned::%{_uuid}%::var}'s held item to copper axe
+            apply speed potion of tier 1 to {drowned::%{_uuid}%::var} for 5 seconds
+            wait 5 seconds
+            set {drowned::%{_uuid}%::var}'s held item to trident of channeling
+
+on death of drowned:
+    if victim has scoreboard tag "dm1":
+        broadcast "&a%attacker% đã đánh bại &bDrowned Mini Boss I&a!"
+        clear drops
+        set {_uuid} to uuid of victim
+        delete {drowned::%{_uuid}%::var}
+        delete {drowned::%{_uuid}%::timer}
+        delete bossbar named "%{_uuid}%"
+        execute console command "/scoreboard players remove count_dm1 count_boss 1"
+        execute console command "/scoreboard players add count_dm1 count_mini_kill 1"
+
+        set {compass_chance} to random integer between 1 and 3
+        if {compass_chance} = 1:
+            drop {ocean}
+        else if {compass_chance} = 2:
+            drop {swamp}
+        else:
+            drop {mountain}
+        
+on damage of player:
+    if attacker has scoreboard tag "dm1":
+        set {_uuid} to uuid of attacker
+        set {drowned::%{_uuid}%::timer} to 0
+
+on vehicle enter:
+    if event-entity has the scoreboard tag "dm1":
+        cancel event
+
+command /removefrombossbar>:
+    permission: op
+    trigger:
+        remove all players from all boss bars
+

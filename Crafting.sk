@@ -1,0 +1,179 @@
+on join:
+    set {_name} to player's name
+    execute console command "recipe give %{_name}% *"
+    wait 1 tick
+
+
+
+# Trước thời kỳ đồ sắt:
+    # ---- FUNCTIONAL BLOCKS ----
+    execute console command "recipe take %{_name}% minecraft:smithing_table"
+    execute console command "recipe take %{_name}% minecraft:blast_furnace"
+    execute console command "recipe take %{_name}% minecraft:anvil"
+    execute console command "recipe take %{_name}% minecraft:chipped_anvil"
+    execute console command "recipe take %{_name}% minecraft:damaged_anvil"
+    execute console command "recipe take %{_name}% minecraft:hopper"
+
+    # ---- RAILS & MINECART ----
+    execute console command "recipe take %{_name}% minecraft:rail"
+    execute console command "recipe take %{_name}% minecraft:activator_rail"
+    execute console command "recipe take %{_name}% minecraft:detector_rail"
+    execute console command "recipe take %{_name}% minecraft:minecart"
+    execute console command "recipe take %{_name}% minecraft:chest_minecart"
+    execute console command "recipe take %{_name}% minecraft:furnace_minecart"
+    execute console command "recipe take %{_name}% minecraft:hopper_minecart"
+    execute console command "recipe take %{_name}% minecraft:tnt_minecart"
+
+    execute console command "recipe take %{_name}% minecraft:saddle"
+
+    # ---- ARMOR (4 món) ----
+    execute console command "recipe take %{_name}% minecraft:iron_helmet"
+    execute console command "recipe take %{_name}% minecraft:iron_chestplate"
+    execute console command "recipe take %{_name}% minecraft:iron_leggings"
+    execute console command "recipe take %{_name}% minecraft:iron_boots"
+
+    # ---- RANGED ----
+    execute console command "recipe take %{_name}% minecraft:bow"
+    execute console command "recipe take %{_name}% minecraft:crossbow"
+
+    #minecart
+    execute console command "recipe take %{_name}% minecraft:minecart"
+    execute console command "recipe take %{_name}% minecraft:tnt_minecart"
+    execute console command "recipe take %{_name}% minecraft:chest_minecart"
+    execute console command "recipe take %{_name}% minecraft:furnace_minecart"
+    execute console command "recipe take %{_name}% minecraft:hopper_minecart"
+
+
+# Trước thời kỳ redstone:
+    execute console command "recipe take %{_name}% minecraft:redstone_block"
+    execute console command "recipe take %{_name}% minecraft:copper_bulb"
+    execute console command "recipe take %{_name}% minecraft:exposed_copper_bulb"
+    execute console command "recipe take %{_name}% minecraft:weathered_copper_bulb"
+    execute console command "recipe take %{_name}% minecraft:oxidized_copper_bulb"
+    execute console command "recipe take %{_name}% minecraft:waxed_copper_bulb"
+    execute console command "recipe take %{_name}% minecraft:waxed_exposed_copper_bulb"
+    execute console command "recipe take %{_name}% minecraft:waxed_weathered_copper_bulb"
+    execute console command "recipe take %{_name}% minecraft:waxed_oxidized_copper_bulb"
+
+    execute console command "recipe take %{_name}% minecraft:redstone_torch"
+    execute console command "recipe take %{_name}% minecraft:redstone_lamp"
+    execute console command "recipe take %{_name}% minecraft:note_block"
+    execute console command "recipe take %{_name}% minecraft:repeater"
+    execute console command "recipe take %{_name}% minecraft:comparator"
+    execute console command "recipe take %{_name}% minecraft:target"
+    execute console command "recipe take %{_name}% minecraft:piston"
+    execute console command "recipe take %{_name}% minecraft:sticky_piston"
+    execute console command "recipe take %{_name}% minecraft:dispenser"
+    execute console command "recipe take %{_name}% minecraft:dropper"
+    execute console command "recipe take %{_name}% minecraft:crafter"
+    execute console command "recipe take %{_name}% minecraft:observer"
+
+    execute console command "recipe take %{_name}% minecraft:powered_rail"
+    execute console command "recipe take %{_name}% minecraft:detector_rail"
+    execute console command "recipe take %{_name}% minecraft:activator_rail"
+
+    execute console command "recipe take %{_name}% minecraft:compass"
+    execute console command "recipe take %{_name}% minecraft:clock"
+
+    execute console command "recipe take %{_name}% minecraft:lever"
+    execute console command "recipe take %{_name}% minecraft:oak_button"
+    execute console command "recipe take %{_name}% minecraft:stone_button"
+
+    execute console command "recipe take %{_name}% minecraft:oak_pressure_plate"
+    execute console command "recipe take %{_name}% minecraft:spruce_pressure_plate"
+    execute console command "recipe take %{_name}% minecraft:birch_pressure_plate"
+    execute console command "recipe take %{_name}% minecraft:jungle_pressure_plate"
+    execute console command "recipe take %{_name}% minecraft:acacia_pressure_plate"
+    execute console command "recipe take %{_name}% minecraft:dark_oak_pressure_plate"
+    execute console command "recipe take %{_name}% minecraft:mangrove_pressure_plate"
+    execute console command "recipe take %{_name}% minecraft:cherry_pressure_plate"
+    execute console command "recipe take %{_name}% minecraft:bamboo_pressure_plate"
+    execute console command "recipe take %{_name}% minecraft:crimson_pressure_plate"
+    execute console command "recipe take %{_name}% minecraft:warped_pressure_plate"
+    execute console command "recipe take %{_name}% minecraft:stone_pressure_plate"
+    execute console command "recipe take %{_name}% minecraft:light_weighted_pressure_plate"
+    execute console command "recipe take %{_name}% minecraft:heavy_weighted_pressure_plate"
+
+    execute console command "recipe take %{_name}% minecraft:calibrated_sculk_sensor"
+    execute console command "recipe take %{_name}% minecraft:tripwire_hook"
+    execute console command "recipe take %{_name}% minecraft:daylight_detector"
+
+    execute console command "recipe take %{_name}% minecraft:tnt"
+
+# Trước thời kỳ kim cương:
+    execute console command "recipe take %{_name}% minecraft:diamond_block"
+    execute console command "recipe take %{_name}% minecraft:jukebox"
+    execute console command "recipe take %{_name}% minecraft:enchanting_table"
+
+    # ---- TOOLS (5)
+    execute console command "recipe take %{_name}% minecraft:diamond_sword"
+    execute console command "recipe take %{_name}% minecraft:diamond_pickaxe"
+    execute console command "recipe take %{_name}% minecraft:diamond_axe"
+    execute console command "recipe take %{_name}% minecraft:diamond_shovel"
+    execute console command "recipe take %{_name}% minecraft:diamond_hoe"
+
+    # ---- ARMOR (4)
+    execute console command "recipe take %{_name}% minecraft:diamond_helmet"
+    execute console command "recipe take %{_name}% minecraft:diamond_chestplate"
+    execute console command "recipe take %{_name}% minecraft:diamond_leggings"
+    execute console command "recipe take %{_name}% minecraft:diamond_boots"
+
+    # ---- ARMOR TRIMS / SMITHING TEMPLATES (all known templates + netherite upgrade)
+    execute console command "recipe take %{_name}% minecraft:netherite_upgrade_smithing_template"
+    execute console command "recipe take %{_name}% minecraft:coast_armor_trim_smithing_template"
+    execute console command "recipe take %{_name}% minecraft:dune_armor_trim_smithing_template"
+    execute console command "recipe take %{_name}% minecraft:eye_armor_trim_smithing_template"
+    execute console command "recipe take %{_name}% minecraft:flow_armor_trim_smithing_template"
+    execute console command "recipe take %{_name}% minecraft:host_armor_trim_smithing_template"
+    execute console command "recipe take %{_name}% minecraft:wayfinder_armor_trim_smithing_template"
+    execute console command "recipe take %{_name}% minecraft:shaper_armor_trim_smithing_template"
+    execute console command "recipe take %{_name}% minecraft:raiser_armor_trim_smithing_template"
+    execute console command "recipe take %{_name}% minecraft:wild_armor_trim_smithing_template"
+    execute console command "recipe take %{_name}% minecraft:tide_armor_trim_smithing_template"
+    execute console command "recipe take %{_name}% minecraft:sentry_armor_trim_smithing_template"
+    execute console command "recipe take %{_name}% minecraft:spire_armor_trim_smithing_template"
+    execute console command "recipe take %{_name}% minecraft:vex_armor_trim_smithing_template"
+    execute console command "recipe take %{_name}% minecraft:ward_armor_trim_smithing_template"
+    execute console command "recipe take %{_name}% minecraft:wayfinder_armor_trim_smithing_template"
+    execute console command "recipe take %{_name}% minecraft:snout_armor_trim_smithing_template"
+    execute console command "recipe take %{_name}% minecraft:rib_armor_trim_smithing_template"
+    execute console command "recipe take %{_name}% minecraft:silence_armor_trim_smithing_template"
+    execute console command "recipe take %{_name}% minecraft:bolt_armor_trim_smithing_template"
+
+    # Trước thời kỳ vàng:
+
+    # ---- BLOCKS ----
+    execute console command "recipe take %{_name}% minecraft:gold_block"
+    execute console command "recipe take %{_name}% minecraft:raw_gold_block"
+
+    # ---- INGOT & NUGGET ----
+    execute console command "recipe take %{_name}% minecraft:gold_ingot"
+    execute console command "recipe take %{_name}% minecraft:gold_nugget"
+    execute console command "recipe take %{_name}% minecraft:raw_gold"
+
+    # ---- TOOLS (5 món) ----
+    execute console command "recipe take %{_name}% minecraft:golden_sword"
+    execute console command "recipe take %{_name}% minecraft:golden_pickaxe"
+    execute console command "recipe take %{_name}% minecraft:golden_axe"
+    execute console command "recipe take %{_name}% minecraft:golden_shovel"
+    execute console command "recipe take %{_name}% minecraft:golden_hoe"
+
+    # ---- ARMOR (4 món) ----
+    execute console command "recipe take %{_name}% minecraft:golden_helmet"
+    execute console command "recipe take %{_name}% minecraft:golden_chestplate"
+    execute console command "recipe take %{_name}% minecraft:golden_leggings"
+    execute console command "recipe take %{_name}% minecraft:golden_boots"
+
+    # ---- RAILS & REDSTONE ----
+    execute console command "recipe take %{_name}% minecraft:powered_rail"
+    execute console command "recipe take %{_name}% minecraft:light_weighted_pressure_plate"
+    execute console command "recipe take %{_name}% minecraft:clock"
+
+    # ---- DECORATIONS / FUNCTIONAL ----
+    execute console command "recipe take %{_name}% minecraft:golden_apple"
+    execute console command "recipe take %{_name}% minecraft:enchanted_golden_apple"
+    execute console command "recipe take %{_name}% minecraft:glistering_melon_slice"
+
+    # ---- NETHER / POTION ----
+    execute console command "recipe take %{_name}% minecraft:golden_carrot"
+    execute console command "recipe take %{_name}% minecraft:golden_horse_armor"

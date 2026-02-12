@@ -1,0 +1,13 @@
+on preparing craft:
+    if event-item is rabbit hide:
+        if item model of recipe result is "minecraft:poisonous_potato":
+            set lore of recipe result to "&aMón đồ này có thể giải độc cho người khác"
+
+on right click holding rabbit hide:
+    if target has potion effect poison:
+        if player is holding rabbit hide in main hand:
+            set {_i} to player's held item
+            if item model of {_i} is "minecraft:poisonous_potato":
+                remove poison from target
+                remove 1 of player's tool from player
+

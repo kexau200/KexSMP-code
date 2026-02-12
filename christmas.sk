@@ -1,0 +1,60 @@
+function spawn_present(num: integer):
+    set {_slot0::*} to 32 cooked beef, 32 cooked mutton, 32 cooked porkchop, 32 cooked rabbit, 32 cooked cod, 32 cooked salmon, 64 baked potato, golden carrot, golden apple, 64 rotten flesh, 64 cookie, and 64 pumpkin pie
+    set {_slot1::*} to 64 coal, 64 copper ingot, and 32 iron ingot
+    loop {_num} times:
+        set {_spawn.x} to a random integer between -999 and 999
+        set {_spawn.z} to a random integer between -999 and 999
+        execute console command "forceload add %{_spawn.x}% %{_spawn.z}%" 
+        spawn a chicken at location({_spawn.x}, 350, {_spawn.z}, world "world"):
+            set {_chick} to entity
+        spawn a oak chest boat at location({_spawn.x}, 351, {_spawn.z}, world "world"):
+            add "present" to scoreboard tags of entity
+            set {_boat} to entity
+        spawn a cow at location({_spawn.x}, 351, {_spawn.z}, world "world"):
+            set {_golem} to entity
+        set passenger of {_boat} to {_golem}
+        broadcast "&eCó một món quà đã xuất hiện ở tọa độ &a%{_spawn.x}% %{_spawn.z}%&e!"
+        chance of 75%:
+            set slot 0 of {_boat} to a random element out of {_slot0::*}
+        chance of 75%:
+            set slot 1 of {_boat} to a random element out of {_slot1::*}
+        set {_chance} to a random integer between 1 and 5
+        chance of 25%:
+            add a random integer between 1 and 5 to {_chance}
+        set slot 2 of {_boat} to {_chance} of {adven}
+        chance of 75%:
+            set {_chance} to a random integer between 1 and 3
+            set {_i2} to a feather named "&rTickling Feather"
+            set lore of {_i2} to "poke và tickle tụi trader và chúng nó sẽ restock"
+            set slot 3 of {_boat} to {_chance} of {_i2}
+        chance of 10%:
+            set {_lootbox} to a rabbit hide named "&e&lLoot Box"
+            set {_color.list::*} to "", "white_", "orange_", "magenta_", "light_blue_", "yellow_", "lime_", "pink_", "gray_", "light_gray_", "cyan_", "purple_", "blue_", "brown_", "green_", "red_", and "black_"
+            set {_color} to a random element out of {_color.list::*}
+            set item model of {_lootbox} to "minecraft:%{_color}%bundle"
+            set slot 4 of {_boat} to {_lootbox}
+        chance of 10%:
+            set slot 5 of {_boat} to {heart}
+        chance of 5%:
+            set slot 6 of {_boat} to golden sword of minecraft:tale_of_wind
+        chance of 10%:
+            set {_chance} to a random integer between 1 and 3
+            set {_enchant} to "minecraft:unburden %1 + WRandom(2, 0.2, 0.2)%" parsed as enchantment type
+            set slot 7 of {_boat} to wooden axe
+            enchant slot 7 of {_boat} with {_enchant}
+        
+
+on right click on oak chest boat:
+    if event-entity has scoreboard tag "present":
+        cancel event
+
+on vehicle destroy:
+    if victim is a oak chest boat:
+        if victim has scoreboard tag "present":
+            if attacker is not a player:
+                cancel event
+            else:
+                broadcast "&e&l%attacker% &avừa đập hòm và nhận được những món đồ sau đây:"
+                loop 10 times:
+                    if type of slot (loop-number)-1 of victim is not air:
+                        broadcast slot (loop-number)-1 of victim

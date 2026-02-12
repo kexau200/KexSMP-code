@@ -1,0 +1,396 @@
+on server start:
+	set {spb1.is.boss} to false
+
+command /falsespb1:
+	permission: op
+	trigger:
+		set {spb1.canspawn} to false
+
+command /truespb1:
+	permission: op
+	trigger:
+		set {spb1.canspawn} to true
+
+function death_spb1():
+    execute console command "forceload remove %{spb1.x}-33% %{spb1.z}-33% %{spb1.x}+33% %{spb1.z}+33%"
+    execute console command "/scoreboard players remove count_spb1 count_boss 1"
+    set {spb1.is.boss} to false
+    delete {spb1}
+    delete bossbar named "spb1-bar"
+
+    loop all players:
+        delete {spb1.minions.%loop-player%::*}
+
+
+command /idle1spb1:
+    permission: op
+    trigger:
+        heal {spb1} by 500
+        broadcast "&8&lSpider Boss I &acảm thấy quá chán, hắn tự hồi đầy máu cho bản thân!"
+
+command /idle2spb1:
+	permission: op
+	trigger:
+		loop all spiders:
+			if loop-entity has the scoreboard tag "spb1":
+				delete loop-entity
+				broadcast "&8&lSpider Boss I &acảm thấy quá chán, hắn tự biến mất khỏi thế giới!"
+				
+				death_spb1()
+
+command /rampagespb1:
+	permission: op
+	trigger:
+		loop all spiders:
+			if loop-entity has the scoreboard tag "spb1":
+				delete loop-entity
+				broadcast "&8&lSpider Boss I &ađã hết nọc độc nên phải về nhà nghỉ ngơi và hắn đã tự biến mất khỏi thế giới!"
+
+				death_spb1()
+
+
+on spawn of spider:
+	chance of 1%:
+		add "special" to the scoreboard tags of event-entity
+
+on spawn of cave spider:
+	chance of 1%:
+		add "special" to the scoreboard tags of event-entity
+
+on damage of cave spider by player:
+	execute console command "execute if score count_spb1 count_boss matches ..0 run truespb1"
+	execute console command "execute if score count_spb1 count_boss matches 1.. run falsespb1"
+	if {spb1.canspawn} is true:
+		if victim has the scoreboard tag "special":
+			if victim doesn't have the scoreboard tag "spb1.cant.damage":
+				set {_att} to attacker
+				spawn a spider at victim:
+					add "special" to the scoreboard tags of entity
+					set {_spi} to entity
+				delete victim
+				make {_att} attack {_spi}
+
+on damage of spider by player:
+	execute console command "execute if score count_spb1 count_boss matches ..0 run truespb1"
+	execute console command "execute if score count_spb1 count_boss matches 1.. run falsespb1"
+	if {spb1.canspawn} is true:
+		if victim has the scoreboard tag "special":
+			if victim doesn't have the scoreboard tag "spb1.cant.damage":
+				loop all players:
+					set {spb1.%loop-player%.damage} to true
+				#spawn
+				make 50 of flame at victim
+				play sound "entity.ender_dragon.growl" with volume 2 at the victim
+				strike lightning at victim
+
+				set {spb1} to victim
+				set {spb1uuid} to uuid of victim
+				set {spb1.is.boss} to true
+				set {spb1.cooldown1} to a random integer between 5 and 8
+				set {spb1.cooldown2} to 10
+				set {spb1.cooldown3} to 3
+
+				set {spb1.time.water} to 0
+				set {spb1.using.skill} to false
+
+				set {spb1.can.heal} to false
+
+				set victim's target to attacker
+
+				set {spb1.bar} to bossbar named "spb1-bar" with title "&8&lSpider Boss I &e[ %{spb1.x}%, %{spb1.z}%]" with color black with style segmented 10 with progress 100
+				add all players to {spb1.bar}
+
+				broadcast "&cAi đó đã triệu hồi &8&lSpider Boss I&c!"
+				set victim's custom name to "&8&lSpider Boss I"
+
+				execute console command "/scoreboard players add count_spb1 count_boss 1"
+				execute console command "/scoreboard players set count_spb1 boss_rampage 0"
+				add "spb1" to the scoreboard tags of victim
+				add "spb1.cant.damage" to the scoreboard tags of victim
+				execute console command "/scoreboard players set count_spb1 idle_time 0"
+
+				#HP
+				set victim's max health to 200
+				set victim's health to 200
+
+				set victim's scale attribute to 1.4
+                  
+
+on damage of spider, silverfish or cave spider:
+	if victim has the scoreboard tag "spb1.cant.damage":
+		if the attacker is not a player:
+			cancel event
+		else if victim is a silverfish:
+			set {bomber2.time} to 0
+			execute console command "/scoreboard players set count_spb1 idle_time 0"
+		else if victim has the scoreboard tag "spb1":
+			set {spb1} to victim
+			execute console command "/scoreboard players set count_spb1 idle_time 0"
+			if {spb1.%attacker%.damage} is false:
+				send "&cBạn chỉ có thể tấn công &8&lSpider Boss I&c sau khi đã tiêu diệt đủ số đệ của hắn!" to attacker
+				cancel event
+			else:
+				chance of 10%:
+					set {pl.spawn} to location of {spb1}
+					set {target} to attacker
+					spawn()
+				chance of 20%:
+					set {_loc} to location of {spb1}
+					set {_pl.loc} to location of attacker
+					set {_m} to y-coord of {_loc} - y-coord of {_pl.loc}
+					if {_m} > 1.5:
+						set {_loc2} to location of {spb1}
+						set x-coord of {_loc} to x-coord of {_loc} + 2
+						set z-coord of {_loc} to z-coord of {_loc} + 2
+						set y-coord of {_loc} to y-coord of {_loc} - {_m}
+						set x-coord of {_loc2} to x-coord of {_loc2} - 2
+						set z-coord of {_loc2} to z-coord of {_loc2} - 2
+						set y-coord of {_loc2} to y-coord of {_loc2} + 2
+						loop all blocks within {_loc} and {_loc2}:
+							if loop-block is not bedrock, obsidian, spawner or crying obsidian:
+								break loop-block
+				chance of 25%:
+					set victim's target to attacker
+		else:
+			execute console command "/scoreboard players set count_spb1 idle_time 0"
+
+#Nội tại độc vô hạn:
+on damage of player:
+	if {spb1.is.boss} is true:
+		if the damage cause is poison:
+			apply poison potion of tier 1 to victim for 8 minutes
+			heal {spb1} by 1
+
+function spawn():
+	set {_chance} to a random integer between 1 and 4
+	chance of 50%:
+		spawn a cave spider at {pl.spawn}:
+			if {_chance} = 1:
+				add "webbite" to the scoreboard tags of entity
+			if {_chance} = 2:
+				apply speed potion of tier 2 to entity
+			apply infinite glowing potion of tier 1 without any particles to entity
+			add "spb1.cant.damage" to the scoreboard tags of entity
+			set entity's target to {target}
+	else:
+		spawn a spider at {pl.spawn}:
+			if {_chance} = 1:
+				add "bomber" to the scoreboard tags of entity
+			if {_chance} = 4:
+				apply speed potion of tier 1 to entity
+				apply strength potion of tier 1 to entity
+			apply infinite glowing potion of tier 1 without any particles to entity
+			add "spb1.cant.damage" to the scoreboard tags of entity
+			set entity's target to {target}
+
+function spawn2():
+	loop all players:
+		if the distance between loop-player and {spb1} <= 30:
+			add loop-player to {_target.list::*}
+	spawn a silverfish at {spb1}:
+		set entity's max health to 10
+		set entity's health to 10
+		set {bomber2} to entity
+		add "bomber2" to the scoreboard tags of entity
+		add "spb1.cant.damage" to the scoreboard tags of entity
+		set entity's target to a random element out of {_target.list::*}
+		set {bomber2.time} to 8
+		apply infinite speed potion of tier 2 to entity
+
+every 1 tick:
+    if {spb1.is.boss} is true:
+        set bar progress of {spb1.bar} to {spb1}'s health *100/{spb1}'s max health
+        add all players to {spb1.bar}
+
+every 1 seconds:
+	if {spb1.is.boss} is true:
+		#ko phải chiêu
+		set bar title of {spb1.bar} to "&8&lSpider Boss I &e[ %{spb1.x}%, %{spb1.z}%]"
+
+		execute console command "dochunkload"
+		execute console command "scoreboard players add count_spb1 idle_time 1"
+		execute console command "execute if score count_spb1 idle_time matches 30 run idle1spb1"
+		execute console command "execute if score count_spb1 idle_time matches 300.. run idle2spb1"
+		execute console command "execute if score count_spb1 boss_rampage matches 25.. run rampagespb1"
+
+		#chiêu
+		set {spb1.cooldown1} to {spb1.cooldown1} - 1
+		if {spb1.cooldown1} <= 0:
+			set {_loc} to location of {spb1}
+			loop all players:
+				delete {spb1.minions.%loop-player%::*}
+				if the distance between loop-player and {spb1} <= 50:
+					set ai of {spb1} to false
+					set {spb1.using.skill} to true
+					set {spb1.do.skill1} to true
+					add loop-player to {_pl.list::*}
+					send "&eBạn đã bị liên kết với những &c5 &etrong số những con đệ của &8&lSpider Boss I&e, hãy tìm và tiêu diệt chúng trước!" to loop-player 
+					set {spb1.%loop-player%.damage} to false
+					set {target} to loop-player
+					set {spb1.cooldown1} to a random integer between 75 and 85
+					set {_pl.loc} to location of loop-player
+					set {_x} to the x-coord of {_pl.loc}
+					set {_y} to the y-coord of {_pl.loc}
+					set {_z} to the z-coord of {_pl.loc}
+					set {_spb.minion.per.pl} to 0
+					while {_spb.minion.per.pl} < 5:
+						set {_spb.minion.loc.check} to 0
+						while {_spb.minion.loc.check} < 20:
+							set {pl.spawn} to {_pl.loc}
+							set x-coord of {pl.spawn} to {_x} + a random number between -10 and 10
+							set y-coord of {pl.spawn} to {_y} + a random number between -2 and 5
+							set z-coord of {pl.spawn} to {_z} + a random number between -10 and 10
+							set {_spb.minion.loc.check} to {_spb.minion.loc.check} + 1
+							if block at {pl.spawn} is air:
+								spawn()
+								add last spawned entity to {spb1.minions.%loop-player%::*}
+								set {_spb.minion.loc.check} to 20
+								set {_spb.minion.per.pl} to {_spb.minion.per.pl} + 1
+							else if {_spb.minion.loc.check} >= 20:
+								spawn()
+								add last spawned entity to {spb1.minions.%loop-player%::*}
+								set {_spb.minion.loc.check} to 20
+								set {_spb.minion.per.pl} to {_spb.minion.per.pl} + 1
+					
+			if size of {_pl.list::*} > 0:
+				delete {_pl.list::*}
+				wait 10 seconds
+				set ai of {spb1} to true
+				wait 10 seconds
+				set {spb1.cooldown2} to {spb1.cooldown2} + 20
+				set {spb1.cooldown3} to {spb1.cooldown3} + 20
+				set {spb1.using.skill} to false
+				wait 10 seconds
+				if {spb1.is.boss} is true:
+					broadcast "&cLũ đệ còn lại của &8&lSpider Boss I&c đã quay trở lại và hồi máu cho hắn"
+					loop all spiders and cave spiders:
+						loop-entity has the scoreboard tag "spb1.cant.damage"
+						loop-entity doesn't have the scoreboard tag "spb1"
+						heal {spb1} by 20
+						delete loop-entity
+					loop all players:
+						delete {spb1.minions.%loop-player%::*}
+						set {spb1.%loop-player%.damage} to true
+		
+		set {spb1.cooldown2} to {spb1.cooldown2} - 1
+		if {spb1.cooldown2} <= 0:
+			if {spb1.using.skill} is false:
+				set {_loc} to location of {spb1}
+				loop all players:
+					if the distance between loop-player and {spb1} <= 50:
+						add loop-player to {_check::*}
+						set {spb1.using.skill} to true
+						set {spb1.cooldown2} to a random integer between 40 and 50
+						set {_loc2} to location of loop-player
+						set block at {_loc2} to cobweb
+						set y-coord of {_loc2} to y-coord of {_loc2} + 1
+						set block at {_loc2} to cobweb
+						apply poison potion of tier 1 to loop-player for 8 minutes
+				if size of {_check::*} > 0:
+					wait 5 seconds
+					set {spb1.using.skill} to false
+					delete {_check::*}
+				
+		set {spb1.cooldown3} to {spb1.cooldown3} - 1
+		if {spb1.cooldown3} <= 0:
+			if {spb1.using.skill} is false:
+				spawn2()
+				set {spb1.cooldown3} to a random integer between 20 and 30 
+		set {bomber2.time} to {bomber2.time} - 1
+		if the distance between {bomber2} and target of {bomber2} <= 2:
+			set {bomber2.time} to 0
+		if {bomber2.time} <= 0:
+			if ai of {bomber2} is true:
+				set ai of {bomber2} to false
+				loop 10 times:
+					set {bomber2}'s custom name to "&4exploding"
+					play sound "entity.experience_orb.pickup" with volume 5 at {bomber2}
+					wait 2 ticks
+					set {bomber2}'s custom name to "exploding"
+					wait 2 ticks
+				create an explosion of force 4 at {bomber2}
+				loop all silverfish:
+					if loop-entity has the scoreboard tag "spb1.cant.damage":
+						delete loop-entity
+		chance of 20%:
+			set {_loc} to location of {spb1}
+			set {_loc2} to location of {spb1}
+			set x-coord of {_loc} to x-coord of {_loc} + 2
+			set z-coord of {_loc} to z-coord of {_loc} + 2
+			set y-coord of {_loc} to y-coord of {_loc} + 1
+			set x-coord of {_loc2} to x-coord of {_loc2} - 2
+			set z-coord of {_loc2} to z-coord of {_loc2} - 2
+			loop all blocks within {_loc} and {_loc2}:
+				if loop-block is not bedrock, obsidian, spawner or crying obsidian:
+					break loop-block	
+on untarget:
+	if event-entity has the scoreboard tag "spb1.cant.damage":
+		if event-entity doesn't have the scoreboard tag "spb1":
+			cancel event
+
+on damage of player:
+	if the attacker has the scoreboard tag "spb1.cant.damage":
+		execute console command "/scoreboard players set count_spb1 idle_time 0"
+	if the attacker has the scoreboard tag "bomber":
+		set ai of attacker to false
+		loop 10 times:
+			set attacker's custom name to "&4exploding"
+			play sound "entity.experience_orb.pickup" with volume 5 at attacker
+			wait 2 ticks
+			set attacker's custom name to "exploding"
+			wait 2 ticks
+		if attacker exist:
+			create an explosion of force 3 at attacker
+		loop all players:
+			if {spb1.minions.%loop-player%::*} contain attacker:
+				remove attacker from {spb1.minions.%loop-player%::*}
+				if size of {spb1.minions.%loop-player%::*} = 0:
+					set {spb1.%loop-player%.damage} to true
+		delete attacker
+	if the attacker has the scoreboard tag "webbite":
+		chance of 50%:
+			set block at location of victim to cobweb
+
+on death of spider or cave spider:
+	if victim has the scoreboard tag "spb1":
+		broadcast "&a%attacker% đã đánh bại &8&lSpider boss I&a!"
+
+		death_spb1()
+		execute console command "/scoreboard players set count_spb1 idle_time 0"
+
+		wait 1 seconds
+		drop {summoner}
+	else if victim has the scoreboard tag "spb1.cant.damage":
+		loop all players:
+			if {spb1.minions.%loop-player%::*} contain victim:
+				remove victim from {spb1.minions.%loop-player%::*}
+				if size of {spb1.minions.%loop-player%::*} = 0:
+					set {spb1.%loop-player%.damage} to true
+					broadcast "&e&l%loop-player% &agiờ đây đã có thể tiếp tục tấn công &8&lSpider Boss I&a!"
+		execute console command "/scoreboard players set count_spb1 idle_time 0"
+
+
+on death of player:
+	if victim has potion effect poison:
+		execute console command "/scoreboard players add count_spb1 boss_rampage 1"
+	if size of {spb1.minions.%victim%::*} > 0:
+		set {spb1.%victim%.damage} to true
+		loop all spiders and cave spiders:
+			if {spb1.minions.%victim%::*} contain loop-entity:
+				remove loop-entity from {spb1.minions.%victim%::*}
+				delete loop-entity
+				heal {spb1} by 10
+		delete {spb1.minions.%victim%::*}
+		broadcast "&cLũ đệ liên kết với &e%victim% của &8&lSpider Boss I&c đã quay trở lại và hồi máu cho hắn"
+
+on quit:
+	if size of {spb1.minions.%player%::*} > 0:
+		set {spb1.%player%.damage} to true
+		loop all spiders and cave spiders:
+			if {spb1.minions.%player%::*} contains loop-entity:
+				remove loop-entity from {spb1.minions.%player%::*}
+				delete loop-entity
+				heal {spb1} by 10
+		delete {spb1.minions.%player%::*}
+		broadcast "&cLũ đệ liên kết với &e%player% của &8&lSpider Boss I&c đã quay trở lại và hồi máu cho hắn"
+

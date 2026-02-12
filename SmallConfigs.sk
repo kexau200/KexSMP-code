@@ -1,0 +1,21 @@
+on portal create:
+    cancel event
+
+on right click holding bow, crossbow or trident:
+    cancel event
+
+on shoot:
+    if shooter is a player:
+        if shooter is holding bow:
+            remove 1 bow from shooter
+            broadcast "exploit cai con cac"
+            cancel event
+        if shooter is holding crossbow:
+            remove 1 crossbow from shooter
+            broadcast "exploit cai con cac"
+            cancel event
+        if shooter is holding trident:
+            remove 1 trident from shooter
+            broadcast "exploit cai con cac"
+            cancel event
+

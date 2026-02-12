@@ -1,0 +1,32 @@
+command /flex [<text>]:
+    trigger:
+        set {_item} to tool of player
+        set {_item.name} to type of tool of player
+        set {_message} to arg-1
+        if {_item} is air:
+            send "&cBạn không cầm vật phẩm nào trên tay để flex!"
+            stop
+        set {_amount} to number of {_item} in player's inventory
+        if {_amount} > 0:
+            if {_message} is set:
+                broadcast "&e%player% &ađang khoe mình có &b%{_amount}%x &6%{_item.name}% &avà gáy to: &d%{_message}%"
+            else:
+                broadcast "&e%player% &ađang khoe mình có &b%{_amount}%x &6%{_item.name}%!"
+        else:
+            broadcast "&e%player% &cnghèo đến mức không có nổi &b%{_item}% &cđể flex XD!"
+
+command /flextool [<text>]:
+    trigger:
+        set {_item} to tool of player
+        set {_message} to arg-1
+        if {_item} is air:
+            send "&cBạn không cầm vật phẩm nào trên tay để flex!"
+            stop
+        set {_amount} to number of {_item} in player's inventory
+        if {_amount} = 1:
+            if {_message} is set:
+                broadcast "&e%player% &ađang khoe mình có &6%{_item}% &avà gáy to: &d%{_message}%"
+            else:
+                broadcast "&e%player% &ađang khoe mình có &6%{_item}%!"
+        else:
+            send "&cCommand này không hoạt động như vậy!"

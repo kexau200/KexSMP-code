@@ -1,0 +1,188 @@
+on right click:
+    if player is holding paper in off hand:
+        set {_i} to player's off hand
+        set {_melee.list::*} to wooden sword, golden sword, stone sword, copper sword, iron sword, diamond sword, netherite sword, wooden axe, golden axe, stone axe, copper axe, iron axe, diamond axe and netherite axe
+        set {_main} to player's main hand
+        set {_loop.order} to 0
+        loop {_melee.list::*}:
+            set {_loop.order} to {_loop.order} + 1
+            if {_main} is loop-value:
+                if {_loop.order} < 8:
+                    set {_base.speed} to -2.4
+                    if {_loop.order} > 6:
+                        set {_base.attack} to 7
+                    else if {_loop.order} > 5:
+                        set {_base.attack} to 6
+                    else if {_loop.order} > 4:
+                        set {_base.attack} to 5
+                    else if {_loop.order} > 2:
+                        set {_base.attack} to 4
+                    else:
+                        set {_base.attack} to 3
+                else:
+                    if {_loop.order} > 13:
+                        set {_base.attack} to 9
+                        set {_base.speed} to -3
+                    else if {_loop.order} > 12:
+                        set {_base.attack} to 8
+                        set {_base.speed} to -3
+                    else if {_loop.order} > 11:
+                        set {_base.attack} to 8
+                        set {_base.speed} to -3.1
+                    else if {_loop.order} > 9:
+                        set {_base.attack} to 8
+                        set {_base.speed} to -3.2
+                    else if {_loop.order} > 8:
+                        set {_base.attack} to 6
+                        set {_base.speed} to -3
+                    else:
+                        set {_base.attack} to 6
+                        set {_base.speed} to -3.2
+                #Modify speed
+                if item model of {_i} is "minecraft:flow_banner_pattern":
+                    set {_speed.mod} to 1st element of attack speed modifier of {_main}
+                    if {_speed.mod} is not set:
+                        set {_custom.speed} to 0.1
+                        add "&bBuff speed: +%{_custom.speed}%" to lore of player's held item
+                        play sound "entity.player.levelup" to player
+                    else:
+                        set {_current.speed} to modifier amount of {_speed.mod} - {_base.speed}
+                        if {_current.speed} < 0:
+                            set {_custom.speed} to modifier amount of {_speed.mod} - {_base.speed} + 0.1
+                            play sound "entity.player.levelup" to player
+                        else if {_current.speed} = 0:
+                            set {_custom.speed} to 0.1
+                            add "&bBuff speed: +%{_custom.speed}%" to lore of player's held item
+                            play sound "entity.player.levelup" to player
+                        else if {_current.speed} = 0.1:
+                            chance of 50%:
+                                set {_custom.speed} to 0.2
+                            else:
+                                set {_custom.speed} to -0.1
+                                play sound "entity.villager.no" to player
+                        else if {_current.speed} = 0.2:
+                            chance of 50%:
+                                set {_custom.speed} to 0.3
+                            else:
+                                set {_custom.speed} to -0.2
+                                play sound "entity.villager.no" to player
+                        else if {_current.speed} = 0.3:
+                            chance of 25%:
+                                set {_custom.speed} to 0.35
+                            else:
+                                set {_custom.speed} to -0.3
+                        else if {_current.speed} = 0.35:
+                            chance of 25%:
+                                set {_custom.speed} to 0.4
+                            else:
+                                set {_custom.speed} to -0.4
+                        else if {_current.speed} = 0.4:
+                            play sound "entity.villager.no" to player
+                            stop
+                        delete lore of {_main}
+                        loop lore of player's held item:
+                            if loop-value-2 contains "Buff speed:":
+                                remove loop-value-2 from lore of player's held item
+                                if {_custom.speed} > 0:
+                                    add "&bBuff speed: +%{_custom.speed}%" to lore of {_main}
+                                    play sound "entity.player.levelup" to player
+                                else if {_custom.speed} < 0:
+                                    add "&b&oBuff speed: -%abs({_custom.speed})%" to lore of {_main}
+                                    play sound "entity.villager.no" to player
+                            else:
+                                add loop-value-2 to lore of {_main}
+                        set lore of player's held item to lore of {_main}
+                    set {_final.speed} to {_base.speed} + {_custom.speed}
+                    set {_attack.mod} to 1st element of attack damage modifier of {_main}
+                    if {_attack.mod} is set:
+                        set {_base.attack} to modifier amount of {_attack.mod}
+                        delete attack damage modifier of player's held item
+                    apply attribute modifier to player's held item:
+                        id: "minecraft:base_attack_damage"
+                        attribute: attack damage
+                        amount: {_base.attack}
+                        slot: mainhand_slot_group
+                        operation: add_number
+                    delete attack speed modifier of player's held item
+                    apply attribute modifier to player's held item:
+                        id: "minecraft:base_attack_speed"
+                        attribute: attack speed
+                        amount: {_final.speed}
+                        slot: mainhand_slot_group
+                        operation: add_number
+                    remove 1 of {_i} from player
+                    stop loop
+                #Modify damage
+                if item model of {_i} is "minecraft:mojang_banner_pattern":
+                    set {_attack.mod} to 1st element of attack damage modifier of {_main}
+                    if {_attack.mod} is not set:
+                        set {_custom.attack} to 1
+                        add "&cBuff attack: +%{_custom.attack}%" to lore of player's held item
+                        play sound "entity.player.levelup" to player
+                    else:
+                        set {_current.attack} to modifier amount of {_attack.mod} - {_base.attack}
+                        if {_current.attack} < 0:
+                            set {_custom.attack} to modifier amount of {_attack.mod} - {_base.attack} + 1
+                            play sound "entity.player.levelup" to player
+                        else if {_current.attack} = 0:
+                            set {_custom.attack} to 1
+                            add "&cBuff attack: +%{_custom.attack}%" to lore of player's held item
+                            play sound "entity.player.levelup" to player
+                        else if {_current.attack} = 1:
+                            chance of 50%:
+                                set {_custom.attack} to 1.5
+                            else:
+                                set {_custom.attack} to -1
+                        else if {_current.attack} = 1.5:
+                            chance of 50%:
+                                set {_custom.attack} to 2
+                            else:
+                                set {_custom.attack} to -2
+                        else if {_current.attack} = 2:
+                            chance of 25%:
+                                set {_custom.attack} to 2.5
+                            else:
+                                set {_custom.attack} to -3
+                        else if {_current.attack} = 2.5:
+                            chance of 25%:
+                                set {_custom.attack} to 3
+                            else:
+                                set {_custom.attack} to -4
+                        else if {_current.attack} = 3:
+                            play sound "entity.villager.no" to player
+                            stop
+                        delete lore of {_main}
+                        loop lore of player's held item:
+                            if loop-value-2 contains "Buff attack:":
+                                remove loop-value-2 from lore of player's held item
+                                if {_custom.attack} > 0:
+                                    add "&cBuff attack: +%{_custom.attack}%" to lore of {_main}
+                                    play sound "entity.player.levelup" to player
+                                else if {_custom.attack} < 0:
+                                    add "&c&oBuff attack: -%abs({_custom.attack})%" to lore of {_main}
+                                    play sound "entity.villager.no" to player
+                            else:
+                                add loop-value-2 to lore of {_main}
+                        set lore of player's held item to lore of {_main}
+                    set {_final.attack} to {_base.attack} + {_custom.attack}
+                    set {_speed.mod} to 1st element of attack speed modifier of {_main}
+                    if {_speed.mod} is set:
+                        set {_base.speed} to modifier amount of {_speed.mod}
+                        delete attack speed modifier of player's held item
+                    delete attack damage modifier of player's held item
+                    apply attribute modifier to player's held item:
+                        id: "minecraft:base_attack_damage"
+                        attribute: attack damage
+                        amount: {_final.attack}
+                        slot: mainhand_slot_group
+                        operation: add_number
+                    apply attribute modifier to player's held item:
+                        id: "minecraft:base_attack_speed"
+                        attribute: attack speed
+                        amount: {_base.speed}
+                        slot: mainhand_slot_group
+                        operation: add_number
+                    remove 1 of {_i} from player
+                    stop loop
+
+                        

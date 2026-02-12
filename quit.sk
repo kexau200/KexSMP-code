@@ -1,0 +1,2 @@
+on quit:
+	broadcast "&eLàm gì để bạn &a%player% &ebuồn thế kia? &cBạn thoát mất rồi kìa&e!?"

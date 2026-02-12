@@ -1,0 +1,389 @@
+
+on mine:
+    if event-player is sneaking:
+        if event-block's type is coal ore, deepslate coal ore, iron ore, deepslate iron ore, copper ore, deepslate copper ore, gold ore, deepslate gold ore, deepslate redstone ore, emerald ore, deepslate emerald ore, diamond ore, deepslate diamond ore, lapis ore, deepslate lapis ore, nether gold ore, or nether quartz ore:
+            set {_mode} to "vein"
+            set {_lvl} to enchantment level of minecraft:vein_mine of player's tool
+            set {_max} to {_lvl} * 10
+            set {_typeCheck} to "%type of event-block%"
+        else if event-block is tagged with tag "minecraft:logs":
+            set {_mode} to "lumber"
+            set {_lvl} to enchantment level of minecraft:lumberjack of player's tool
+            set {_max} to {_lvl} * 50
+        else:
+            stop
+
+        if {_lvl} > 0:
+
+            # setup
+            clear {_checked::*}
+            clear {_currentLayer::*}
+            clear {_nextLayer::*}
+            clear {_planned::*}
+            clear {_plannedLeaves::*}
+            clear {_plannedLayer::*}
+            clear {_plannedLeavesLayer::*}
+            set {_tool} to player's tool
+            set {_count} to 0
+
+            add event-block to {_currentLayer::*}
+
+            ######################
+            # PHASE 1: PRE-CHECK LAYER (KHÔNG wait)
+            # - repair player's tool by -1 mỗi khi plan 1 block
+            # - nếu durability of player's tool = 0 thì dừng plan thêm block
+            ######################
+
+            set {_layerIndex} to 1
+            while {_currentLayer::*} is set:
+                if {_count} >= {_max}:
+                    stop loop
+
+                clear {_nextLayer::*}
+
+                loop {_currentLayer::*}:
+                    if {_count} >= {_max}:
+                        stop loop
+                    if {_checked::*} contains loop-value:
+                        continue
+
+                    add loop-value to {_checked::*}
+
+                    if {_mode} is "vein":
+                        if "%type of loop-value%" is not {_typeCheck}:
+                            continue
+                    else if {_mode} is "lumber":
+                        if loop-value is not tagged with tag "minecraft:logs":
+                            continue
+
+                    # reserve 1 durability for this planned block
+                    set {_unb} to enchantment level of unbreaking of player's tool
+                    if {_unb} > 0:
+                        set {_chance} to a random integer between 0 and {_unb}
+                    else:
+                        set {_chance} to 0
+                    if {_chance} = 0:
+                        repair player's tool by -1
+
+                    # store both flat planned list (for vein) and per-layer (for lumber)
+                    add loop-value to {_planned::*}
+                    add loop-value to {_plannedLayer::%{_layerIndex}%::*}
+                    add 1 to {_count}
+
+                    # stop planning further if player's tool durability hit 0
+                    if durability of player's tool is 0:
+                        set {_toolBrokenDuringPlan} to true
+                        stop loop
+
+                # build next layer
+                if {_mode} is "vein":
+                    loop {_currentLayer::*}:
+                        loop blocks in radius 1 around loop-value:
+                            if {_checked::*} does not contain loop-block:
+                                if "%type of loop-block%" is {_typeCheck}:
+                                    if {_nextLayer::*} does not contain loop-block:
+                                        add loop-block to {_nextLayer::*}
+                else if {_mode} is "lumber":
+                    loop {_currentLayer::*}:
+                        set {_b} to loop-value
+                        set {_loc1} to location(x-coordinate of {_b} - 1, y-coordinate of {_b}, z-coordinate of {_b} - 1, world of {_b})
+                        set {_loc2} to location(x-coordinate of {_b} + 1, y-coordinate of {_b} + 1, z-coordinate of {_b} + 1, world of {_b})
+                        loop blocks within {_loc1} and {_loc2}:
+                            if {_checked::*} does not contain loop-block:
+                                if loop-block is tagged with tag "minecraft:logs":
+                                    if {_nextLayer::*} does not contain loop-block:
+                                        add loop-block to {_nextLayer::*}
+                                else if loop-block is tagged with tag "minecraft:leaves":
+                                    # chỉ plan leaves có persistent = false
+                                    if block data tag "persistent" of loop-block is false:
+                                        # store leaves per same layer index so we can break a whole leaves-layer together
+                                        if {_plannedLeavesLayer::%{_layerIndex}%::*} does not contain loop-block:
+                                            add loop-block to {_plannedLeavesLayer::%{_layerIndex}%::*}
+
+                clear {_currentLayer::*}
+                add {_nextLayer::*} to {_currentLayer::*}
+
+                if {_toolBrokenDuringPlan} is set:
+                    stop loop
+
+                add 1 to {_layerIndex}
+
+            ######################
+            # PHASE 2: THỰC THI PHÁ THEO LỚP
+            # - vein: mỗi tick phá 1 block (using tool)
+            # - lumber: phá nguyên từng LAYER logs + LAYER leaves mỗi tick
+            ######################
+
+            if {_mode} is "vein":
+                loop {_planned::*}:
+                    if loop-value is set:
+                        wait 1 tick
+                        break loop-value using {_tool}
+
+            else if {_mode} is "lumber":
+                # iterate planned layers by index and break whole layer per tick
+                set {_i} to 1
+                while {_plannedLayer::%{_i}%::*} is set:
+                    # break all logs in this layer (no internal waits)
+                    loop {_plannedLayer::%{_i}%::*}:
+                        if loop-value is set:
+                            break loop-value using {_tool}
+
+                    # break all planned leaves for this layer (no tool use)
+                    if {_plannedLeavesLayer::%{_i}%::*} is set:
+                        loop {_plannedLeavesLayer::%{_i}%::*}:
+                            if loop-value is set:
+                                if block data tag "persistent" of loop-value is false:
+                                    set {_j} to {_i} + 1
+                                    loop blocks in radius 1 around loop-value:
+                                        if {_plannedLeavesLayer::%{_j}%::*} doesn't contain loop-block:
+                                            if loop-block is tagged with tag "minecraft:leaves":
+                                                if block data tag "persistent" of loop-block is false:
+                                                    add loop-block to {_plannedLeavesLayer::%{_j}%::*}
+                                                    loop blocks in radius 4 around loop-block:
+                                                        if loop-block-2 is tagged with tag "minecraft:logs":
+                                                            if {_checked::*} doesn't contain loop-block-2:
+                                                                remove loop-block-1 from {_plannedLeavesLayer::%{_j}%::*}
+                                    break loop-value naturally
+                    # after breaking an entire layer (logs+leaves), wait 1 tick before next layer
+                    wait 1 tick
+                    add 1 to {_i}
+
+                set {_i} to {_j}
+                while {_plannedLeavesLayer::%{_i}%::*} is set:
+                    loop {_plannedLeavesLayer::%{_i}%::*}:
+                        if loop-value is set:
+                            if block data tag "persistent" of loop-value is false:
+                                set {_j} to {_i} + 1
+                                loop blocks in radius 1 around loop-value:
+                                    if {_plannedLeavesLayer::%{_j}%::*} doesn't contain loop-block:
+                                        if loop-block is tagged with tag "minecraft:leaves":
+                                            if block data tag "persistent" of loop-block is false:
+                                                add loop-block to {_plannedLeavesLayer::%{_j}%::*}
+                                                loop blocks in radius 4 around loop-block:
+                                                    if loop-block-2 is tagged with tag "minecraft:logs":
+                                                        if {_checked::*} doesn't contain loop-block-2:
+                                                            remove loop-block-1 from {_plannedLeavesLayer::%{_j}%::*}
+                                break loop-value naturally
+                    # after breaking an entire layer (logs+leaves), wait 1 tick before next layer
+                    wait 1 tick
+                    add 1 to {_i}
+
+
+on mine:
+    if player is sneaking:
+        clear {_blocks::*}
+        set {_lvl} to enchantment level of minecraft:excavator of player's tool
+        if {_lvl} is not greater than 0:
+            set {_lvl} to enchantment level of minecraft:chunk_mine of player's tool
+        if {_lvl} is not greater than 0:
+            stop
+        set {_type} to "%type of event-block%"
+        if {_lvl} = 1:
+            loop blocks in radius 1 around event-block:
+                if "%type of loop-block%" is {_type}:
+                    add loop-block to {_blocks::*}
+        else if {_lvl} = 2:
+            set {_corner1} to location(x-coord of event-block + 1, y-coord of event-block + 1, z-coord of event-block + 1, world of event-block)
+            set {_corner2} to location(x-coord of event-block - 1, y-coord of event-block - 1, z-coord of event-block - 1, world of event-block)
+            loop blocks within {_corner1} and {_corner2}:
+                if "%type of loop-block%" is {_type}:
+                    add loop-block to {_blocks::*}
+        else:
+            set {_corner1} to location(x-coord of event-block + 2, y-coord of event-block + 1, z-coord of event-block + 2, world of event-block)
+            set {_corner2} to location(x-coord of event-block - 2, y-coord of event-block - 1, z-coord of event-block - 2, world of event-block)
+            loop blocks within {_corner1} and {_corner2}:
+                if "%type of loop-block%" is {_type}:
+                    add loop-block to {_blocks::*}
+        loop {_blocks::*}:
+            break loop-value using player's tool
+            set {_unb} to enchantment level of unbreaking of player's tool
+            if {_unb} > 0:
+                set {_chance} to a random integer between 0 and {_unb}
+            else:
+                set {_chance} to 0
+            if {_chance} = 0:
+                repair player's tool by -1
+            if durability of player's tool = 0:
+                stop     
+        
+
+on break of iron ore, gold ore or copper ore, deepslate iron ore, deepslate gold ore or deepslate copper ore:
+	set {_lvl} to enchantment level of minecraft:smelter of player's tool
+	if {_lvl} > 0:
+		clear drops
+		loop drops of event-block using player's tool:
+			if loop-item = raw iron:
+				add (item amount of loop-item) of iron ingot to {_i::*}
+			else if type of loop-item = 1 of raw gold:
+				add (item amount of loop-item) of gold ingot to {_i::*}
+			else if loop-item = raw copper:
+				add (item amount of loop-item) of copper ingot to {_i::*}
+			else:
+				add loop-value to {_i::*}
+		drop {_i::*} at event-block
+
+on death of player:
+    loop all items in inventory of victim:
+        if loop-item is enchanted with minecraft:soul_bound:
+            add loop-item to {soulbound::%victim%::*}
+            remove loop-item from drops
+
+on respawn:
+    give player {soulbound::%player%::*}
+    clear {soulbound::%player%::*}
+
+on damage:
+    if damage cause is an attack:
+        if attacker's fall distance > 1.5:
+            if {windtale::%attacker%::immune.fall} is true:
+                if victim is {windtale::%attacker%::vic}:
+                    if attacker's main hand is a mace:
+                        set {windtale::%attacker%::smash} to false
+                        stop
+                    if {windtale::%attacker%::smash} is true:
+                        set {_held} to attacker's main hand
+                        set attacker's main hand to mace
+                        make attacker attack victim
+                        set attacker's main hand to {_held}
+    set {windtale::%victim%::stack} to 0
+    if attacker is sprinting:
+        if attack cooldown of attacker > 0.848:
+            if attacker's tool is enchanted with minecraft:tale_of_wind:
+                #3 điều kiện trên là 3 điều kiện để windtale
+                if victim is not {windtale::%attacker%::vic}:
+                    set {windtale::%attacker%::vic} to victim
+                    set {windtale::%attacker%::stack} to 1
+                else:
+                    add 1 to {windtale::%attacker%::stack}
+                    if {windtale::%attacker%::stack} = 3:
+                        push attacker up with speed 1.2
+                        push victim up with speed 0.1
+                        set {_v} to vector between attacker and victim
+                        set y of {_v} to 0
+                        push victim along vector {_v} with speed 1
+                        play sound "entity.wind_charge.wind_burst" with volume 2 at attacker
+                        draw 3 gust_emitter_small at attacker with offset vector(0.5, 0.5, 0.5) with extra 0
+                    else if {windtale::%attacker%::stack} > 3:
+                        set {windtale::%attacker%::stack} to 1
+                set {_stack} to {windtale::%attacker%::stack}
+                wait 2 second
+                if {_stack} = {windtale::%attacker%::stack}:
+                    set {windtale::%attacker%::stack} to 0
+    if damage cause is a fall:
+        if {windtale::%victim%::immune.fall} is true:
+            cancel event
+        else if {grapping::%victim%.isgrappling} is true:
+            cancel event
+    set {windtale::%victim%::immune.fall} to false
+
+on right click:
+    if player's tool is enchanted with minecraft:tale_of_wind:
+        if {windtale::%player%::stack} = 3:
+            set velocity of player to vector(0,0,0)
+            set {_v} to vector in direction of player
+            push player along {_v} with speed 1.5
+            set {windtale::%player%::stack} to 0
+            set {windtale::%player%::immune.fall} to true
+            set {windtale::%player%::smash} to true 
+            wait 4 second
+            set {windtale::%player%::smash} to false
+
+on jump:
+    if {windtale::%player%::smash} is false:
+        set {windtale::%player%::immune.fall} to false
+    if {grapping::%player%.isgrappling} is true:
+        if {grapping::%player%.canjump} is true:
+            set {grapping::%player%.canjump} to false
+            set {grapping::%player%.isboosting} to true
+            push player up with speed 1
+            wait 10 tick
+            set {grapping::%player%.isboosting} to false
+
+on rod cast:
+    if player's main hand is fishing rod:
+        set {_m} to player's main hand
+    else if player's off hand is fishing rod:
+        set {_m} to player's off hand
+    if {_m} is enchanted with minecraft:grappling_hook:
+        set fishing hook's custom name to "grappling"
+        hide fishing hook's custom name
+        set cooldown of fishing rod for player to 2 seconds
+        set {grapping::%player%.canjump} to true
+        delete {grappling::%player%.victim}
+        set {grappling::%player%} to 0
+
+on fishing state change:
+    if fishing hook's custom name is "grappling":
+        if {grappling::%player%.victim} is not set:
+            if {grappling::%player%} = 0:
+                if fishing state is not in ground:
+                    stop
+            cancel event
+            set {grappling::%player%} to 0
+            set {_tick} to 50
+            while fishing hook is alive:
+                set {grapping::%player%.isgrappling} to true
+                set {_loc} to location of fishing hook
+                add -1.5 to y-coord of {_loc}
+                set {_dis} to distance between {_loc} and player
+                set {_v} to vector between player and {_loc}
+                set x of {_v} to x of {_v} * 0.1
+                set z of {_v} to z of {_v} * 0.1
+                if {grapping::%player%.isboosting} is true:
+                    set y of {_v} to y of velocity of player
+                else:
+                    set y of {_v} to y of {_v} *0.1
+                set velocity of player to {_v}
+                wait 1 tick
+                if player is sneaking:
+                    add -1 to {_tick}
+                else:
+                    set {_tick} to 50
+                if {_tick} < 0:
+                    stop loop
+            set {grapping::%player%.isgrappling} to false
+        else:
+            if fishing state is caught entity:
+                if {grappling::%player%} = 0:
+                    set {_v} to velocity of {grappling::%player%.victim}
+                    wait 1 tick
+                    set velocity of {grappling::%player%.victim} to {_v}
+                    stop
+                add -1 to {grappling::%player%}
+                cancel event
+                set {_victim} to {grappling::%player%.victim}
+                set {_v} to vector between {_victim} and player
+                set {_dis} to distance between {_victim} and player
+                if {grappling::%player%} = 1:
+                    if y of {_v} > 0:
+                        set velocity of {_victim} to vector(0.5,0,0.5)
+                        push {_victim} up with speed min(y of {_v} * 0.04 + 0.75, 2)
+                    else:
+                        set velocity of {_victim} to vector(0.5,0,0.5)
+                        push {_victim} up with speed max(2 + y of {_v} * 0.1, 1.5)
+                else:
+                    set y of {_v} to 0
+                    push {_victim} along {_v} with speed min(1.5, {_dis}*0.3)
+                    push {_victim} down with speed max(0.3, {_dis}*0.1)
+
+on projectile hit:
+    if projectile's custom name is "grappling":
+        if victim is not an entity:
+            set {grappling::%shooter%} to 1
+            while projectile is alive:
+                set y of velocity of projectile to 0
+                set {_loc} to location of projectile
+                wait 2 tick
+                teleport projectile to {_loc}
+        else:
+            set {grappling::%shooter%} to 2
+            set {grappling::%shooter%.victim} to victim
+
+on break:
+    if event-block's age is event-block's max age:
+        if event-block is wheat, potatoes, carrot or beetroot:
+            if event-player's tool is enchanted with minecraft:replenish:
+                set {_m} to event-block
+                set age of {_m} to 0
+                set block at event-block to {_m}

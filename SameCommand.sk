@@ -1,0 +1,497 @@
+function dry(doer: entity, radius: number):
+    if {_doer} is {zb2}:
+        if {zb2.is.doing} is true:
+            stop
+        set {zb2.is.doing} to true
+    set {_block.corner1} to block at {_doer}
+    add {_radius} to x-coord of {_block.corner1}
+    add {_radius}+1 to y-coord of {_block.corner1}
+    add {_radius} to z-coord of {_block.corner1}
+    set {_block.corner2} to block at {_doer}
+    add {_radius}*-1 to x-coord of {_block.corner2}
+    add {_radius}*-1 to y-coord of {_block.corner2}
+    add {_radius}*-1 to z-coord of {_block.corner2}
+    loop blocks within {_block.corner2} and {_block.corner1}:
+        if loop-block is tagged with tag "minecraft:liquid":
+            iron_break_as({_doer}, loop-block, 1)
+            set loop-block to air
+        else if block data tag "waterlogged" of loop-block is true:
+            set block data tag "waterlogged" of loop-block to false
+    wait 2 tick
+    if {_doer} is {zb2}:
+        set {zb2.is.doing} to false
+
+function build_below(boss: entity, block: any named thing):
+    set {_loc} to location of {_boss}
+    if block below {_loc} is not solid:
+        if block below {_loc} is not tagged with tag "minecraft:replaceable":
+            break block below {_loc} naturally
+        set block below {_loc} to {_block}
+        if {_boss} is {zb2}:
+            set {_boss}'s main hand to {_block}
+        make {_boss} swing main hand
+
+function get_to_target(chaser: entity, block: any named thing, time: number, digdown: boolean):
+    if {_chaser}'s target is not set:
+        stop
+    if {_chaser} is {zb2}:
+        if {zb2.is.doing} is true:
+            stop
+    else:
+        set {_held} to {_chaser}'s held item
+    set {_target.loc} to location of {_chaser}'s target
+    set {_chaser.loc} to location of block at {_chaser}
+    if y-coord of {_chaser.loc} - y-coord of {_chaser} <= 0.48:
+        set y-coord of {_chaser.loc} to y-coord of {_chaser.loc} + 1
+    set {_locate.vector} to vector between {_chaser.loc} and {_target.loc}
+    set y of {_locate.vector} to 0
+    set {_v0x} to {_locate.vector}
+    set {_v0z} to {_locate.vector}
+    set z of {_v0x} to 0
+    set x of {_v0z} to 0
+    set {_angle.x} to angle between {_v0x} and {_locate.vector}
+    set {_angle.z} to angle between {_v0z} and {_locate.vector}
+    if {_digdown} is true:
+        if y-coord of block at {_chaser.loc} - y-coord of {_target.loc} >= 1:
+            set {_delta} to max(abs(x-coord of {_target.loc} - x-coord of {_chaser.loc}), abs(z-coord of {_target.loc} - z-coord of {_chaser.loc}))
+            if {_delta} < 1:
+                if block below {_chaser.loc} is solid:
+                    iron_break_as({_chaser}, block below {_chaser.loc}, {_time})
+                    stop
+    if {_angle.x} > 10:
+        if z-coord of {_target.loc} < z-coord of {_chaser.loc}:
+            set z-coord of {_chaser.loc} to z-coord of {_chaser.loc} - 1
+        else:
+            set z-coord of {_chaser.loc} to z-coord of {_chaser.loc} + 1
+        if block above {_chaser.loc} is solid:
+            iron_break_as({_chaser}, block above {_chaser.loc}, {_time})
+            stop
+        else if block below {_chaser.loc} is not solid:
+            if block below {_loc} is not tagged with tag "minecraft:replaceable":
+                break block below {_loc} naturally
+            set block below {_chaser.loc} to {_block}
+            if {_chaser} is {zb2}:
+                set {zb2.can.target} to false
+            set {_built} to true
+        else if block at {_chaser.loc} is solid:
+            iron_break_as({_chaser}, block at {_chaser.loc}, {_time})
+            stop
+    if {_angle.z} > 10:
+        if x-coord of {_target.loc} < x-coord of {_chaser.loc}:
+            set x-coord of {_chaser.loc} to x-coord of {_chaser.loc} - 1
+        else:
+            set x-coord of {_chaser.loc} to x-coord of {_chaser.loc} + 1
+        if block above {_chaser.loc} is solid:
+            iron_break_as({_chaser}, block above {_chaser.loc}, {_time})
+            stop
+        else if block below {_chaser.loc} is not solid:
+            if block below {_loc} is not tagged with tag "minecraft:replaceable":
+                break block below {_loc} naturally
+            set block below {_chaser.loc} to {_block}
+            if {_chaser} is {zb2}:
+                set {zb2.can.target} to false
+            set {_built} to true
+        else if block at {_chaser.loc} is solid:
+            iron_break_as({_chaser}, block at {_chaser.loc}, {_time})
+            stop
+    if {_built} is true:
+        set {_chaser}'s main hand to {_block}
+        make {_chaser} swing main hand
+        if {_chaser} is {zb2}:
+            set {zb2.is.doing} to true
+            reset target of {_chaser}
+            set {zb2.main.dirt.time} to 5
+            wait 1 tick
+            set {zb2.can.target} to true
+            set {_chaser}'s target to {zb2.current.target}
+        else:
+            wait 5 tick
+            set {_chaser}'s held item to {_held}
+    set {zb2.is.doing} to false
+
+function iron_break_as(doer: entity,block: block ,speed: integer):
+    if {_block} is bedrock:
+        stop
+    if {_block} is air:
+        stop
+    if {_block} is tagged with tag "minecraft:liquid":
+        stop
+    if {_doer} is {zb2}:
+        if {zb2.is.doing} is true:
+            stop
+        set {zb2.is.doing} to true
+    set {_held} to {_doer}'s held item
+    make {_doer} swing main hand
+    set velocity of {_doer} to vector(0,0,0)
+    if target of {_doer} is set:
+        set {_target} to target of {_doer}
+        reset target of {_doer}
+    if {_block} is tagged with tag "minecraft:sword_instantly_mines":
+        set {_doer}'s held item to iron sword
+        set {_time} to 1
+    else if {_block} is tagged with tag "minecraft:sword_efficient":
+        set {_doer}'s held item to iron sword
+        set {_time} to {_speed} * 0.6
+    else if {_block} is tagged with tag "minecraft:mineable/pickaxe":
+        set {_doer}'s held item to iron pickaxe
+        set {_time} to {_speed}
+    else if {_block} is tagged with tag "minecraft:mineable/axe":
+        set {_doer}'s held item to iron axe
+        set {_time} to {_speed}
+    else if {_block} is tagged with tag "minecraft:mineable/hoe":
+        set {_doer}'s held item to iron hoe
+        set {_time} to {_speed} * 0.3
+    else if {_block} is tagged with tag "minecraft:mineable/shovel":
+        set {_doer}'s held item to iron shovel
+        set {_time} to {_speed} * 0.3
+    else:
+        set {_time} to 0.5
+    if {_block} is tagged with tag "minecraft:needs_diamond_tool":
+        set {_time} to {_time}*5
+    if {_doer} is {zb2}:
+        set {zb2.main.dirt.time} to {_time} + 5
+    while {_time} > 0:
+        set {_time} to {_time} - 1
+        wait 1 tick
+        make {_doer} swing main hand
+    if {_block} is tagged with tag "minecraft:needs_diamond_tool":
+        break {_block} naturally using iron pickaxe
+    else:
+        break {_block}
+    set {_doer}'s held item to {_held}
+    set target of {_doer} to {_target}
+    if {_doer} is {zb2}:
+        set {zb2.is.doing} to false
+
+function jump_build(jumper: entity, block: any named thing, time: number):
+    if target of {_jumper} is set:
+        set {_target} to target of {_jumper}
+    if {_jumper} is {zb2}:
+        reset target of {zb2}
+        set {zb2.jump.cooldown} to 6
+    set {_jumper.loc} to location of block at {_jumper}
+    if y-coord of {_jumper.loc} - y-coord of {_jumper} <= 0.4:
+        set y-coord of {_jumper.loc} to y-coord of {_jumper.loc} + 1
+    set y-coord of {_jumper.loc} to y-coord of {_jumper.loc} + 2
+    if block at {_jumper.loc} is solid:
+        iron_break_as({_jumper}, block at {_jumper.loc}, {_time})
+        stop
+    set velocity of {_jumper} to vector(0, 0, 0)
+    push {_jumper} up with speed 0.5
+    set {zb2.main.dirt.time} to 5
+    set {zb2.is.doing} to true
+    wait 3 tick
+    if {_jumper} is {zb2}:                     
+        set {zb2.is.doing} to false
+    else:
+        wait 2 tick
+    set target of {_jumper} to {_target}
+    build_below({_jumper}, {_block})
+
+function jump_to_target(jumper: entity, loc: location, velUp: number, mulH: number, velDown: number, force: number):
+    set {_loc} to location of block at {_loc}
+    if {_jumper} is {zb2}:
+        set {zb2.willcheck} to false
+        set {zb2.bottomstyle} to false
+        set {zb2.is.doing} to true
+        set {zb2.willcheck} to false
+    set {_jumper.loc} to location of {_jumper}
+    set y-coord of {_jumper.loc} to y-coord of {_loc}
+    set {_vecbase} to vector between {_jumper.loc} and {_loc}
+    set {_loc2} to {_loc}
+    set {_loc3} to {_loc}
+    add 3 to y-coord of {_loc3}
+    set {_traveldis} to distance between {_loc2} and {_jumper.loc}
+    set {_new} to location of {_jumper}
+    #loop blocks within {_loc2} and {_loc3}:
+    #    if loop-block is solid:
+    #        stop
+    set {_tick} to 100
+    push {_jumper} up with speed {_velUp}
+    while {_tick} > 0:
+        set {_old} to {_new}
+        set y-coord of {_loc2} to y-coord of {_jumper}
+        set {_jumper.loc} to location of {_jumper}
+        set y-coord of {_jumper.loc} to y-coord of {_loc}
+        add -1 to {_tick}
+        set {_v} to vector between {_jumper} and {_loc2}
+        set y of {_v} to y of velocity of {_jumper}
+        set x of {_v} to x of {_v} * {_mulH}
+        set z of {_v} to z of {_v} * {_mulH}
+        set velocity of {_jumper} to {_v}
+        if {_tick} < 95:
+            set {_old} to {_new}
+        wait 1 tick
+        if distance between {_jumper.loc} and {_old} + 0.3 > {_traveldis}:
+            teleport {_jumper} to location(x-coord of {_loc}, y-coord of {_jumper}, z-coord of {_loc}, world of {_jumper}, yaw of {_jumper}, pitch of {_jumper})
+            set velocity of {_jumper} to vector(0,0,0)
+            stop loop
+        if {_tick} < 95:
+            set {_new} to location of {_jumper}
+            if distance between {_new} and {_old} = 0:
+                stop loop
+            set {_vecheck} to vector between {_old} and {_new}
+            set y of {_vecheck} to 0
+            if angle between {_vecheck} and {_vecbase} > 5:
+                stop loop
+    set {_tick} to 0
+    set {_block} to block at {_jumper}
+    while {_block} is not solid:
+        set {_block} to block at {_jumper}
+        if block below {_block} is solid:
+            stop loop
+        if {_tick} = 10:
+            push {_jumper} down with speed {_velDown}
+        else if {_tick} > 100:
+            stop loop
+        add 1 to {_tick}
+        wait 1 tick
+    create a safe explosion of force {_force} at {_jumper}
+    if {_jumper} is {zb2}:
+        set {zb2.is.doing} to false
+        set {zb2.willcheck} to true
+        if {zb2.airjump} >= 5:
+            zb2_go_down()
+
+command /strike:
+    permission: op
+    trigger:
+        loop all zombies:
+            if loop-entity's custom name is "&2Zombie Boss I":
+                execute console command "forceload remove %{zb1.x}-33% %{zb1.z}-33% %{zb1.x}+33% %{zb1.z}+33%"
+                execute console command "/scoreboard players remove count_zb1 count_boss 1"
+                set {zb1.is.boss} to false
+                delete {zb1}
+                delete bossbar named "zb1-bar"
+                delete loop-entity
+
+            if loop-entity has the scoreboard tag "zb2":
+                execute console command "forceload remove %{zb2.x}-33% %{zb2.z}-33% %{zb2.x}+33% %{zb2.z}+33%"
+                execute console command "/scoreboard players remove count_zb2 count_boss 1"
+                set {zb2.is.boss} to false
+                delete {zb2}
+                delete bossbar named "zb2-bar"
+                delete loop-entity
+    
+        loop all skeletons:
+            if loop-entity's custom name is "&8Skeleton Boss I":
+
+                execute console command "forceload remove %{sb1.x}-33% %{sb1.z}-33% %{sb1.x}+33% %{sb1.z}+33%"
+                execute console command "/scoreboard players remove count_sb1 count_boss 1"
+                set {sb1.is.boss} to false
+                delete {sb1}
+                delete bossbar named "sb1-bar"
+                delete loop-entity
+        
+        loop all creepers:
+            if loop-entity has scoreboard tags "cb1":
+
+                execute console command "forceload remove %{cb1.x}-33% %{cb1.z}-33% %{cb1.x}+33% %{cb1.z}+33%"
+                execute console command "/scoreboard players remove count_cb1 count_boss 1"
+                set {cb1.is.boss} to false
+                delete {cb1}
+                delete bossbar named "cb1-bar"
+                delete {pl.can.stop}
+                delete loop-entity
+        
+        loop all spiders:
+            if loop-entity has scoreboard tags "spb1":
+
+                execute console command "forceload remove %{spb1.x}-33% %{spb1.z}-33% %{spb1.x}+33% %{spb1.z}+33%"
+                execute console command "/scoreboard players remove count_spb1 count_boss 1"
+                set {spb1.is.boss} to false
+                delete {spb1}
+                delete bossbar named "spb1-bar"
+                delete loop-entity
+
+            else if loop-entity has scoreboard tags "spb1.cant.damage":
+                delete loop-entity
+        
+        loop all cave spiders:
+            if loop-entity has scoreboard tags "spb1.cant.damage":
+                delete loop-entity
+
+command /minicheck:
+    permission: op
+    trigger:
+        loop all drowneds:
+            if loop-entity has the scoreboard tag "dm1":
+                set {_uuid} to uuid of loop-entity
+                set {drowned::%{_uuid}%::timer} to {drowned::%{_uuid}%::timer} + 1
+                if {drowned::%{_uuid}%::timer} >= 100:
+                    delete bossbar named "%{_uuid}%"
+                    delete loop-entity
+                    delete {drowned::%{_uuid}%::var}
+                    execute console command "/scoreboard players remove count_dm1 count_boss 1"
+                    delete {drowned::%{_uuid}%::timer}
+                    broadcast "&bDrowned Mini Boss I &cbiến mất do không có gì để làm!"
+
+command /dochunkload:
+    permission: op
+    trigger:
+        if {zb1.is.boss} is true:
+            set {_loc} to location of {zb1}
+            set {zb1.x} to round(x-coord of {_loc})
+            set {zb1.z} to round(z-coord of {_loc})
+            execute console command "forceload remove %{zb1.x}-33% %{zb1.z}-33% %{zb1.x}+33% %{zb1.z}+33%"
+            execute console command "forceload add %{zb1.x}-16% %{zb1.z}-16% %{zb1.x}+16% %{zb1.z}+16%"
+        if {sb1.is.boss} is true:
+            set {_loc} to location of {sb1}
+            set {sb1.x} to round(x-coord of {_loc})
+            set {sb1.z} to round(z-coord of {_loc})
+            execute console command "forceload remove %{sb1.x}-33% %{sb1.z}-33% %{sb1.x}+33% %{sb1.z}+33%"
+            execute console command "forceload add %{sb1.x}-16% %{sb1.z}-16% %{sb1.x}+16% %{sb1.z}+16%"
+
+            if the block at {_loc} is water:
+                set {sb1.time.water} to {sb1.time.water} + 1
+            else:
+                set {sb1.time.water} to 0
+            if {sb1.time.water} >= 20:
+                set {sb1.time.water} to 0
+                broadcast "&8Skeleton Boss I &abiến mất vào trong dòng nước mà không để lại dấu vết!"
+        
+                loop all skeletons:
+                    if loop-entity's custom name is "&8Skeleton Boss I":
+
+                        execute console command "forceload remove %{sb1.x}-33% %{sb1.z}-33% %{sb1.x}+33% %{sb1.z}+33%"
+                        execute console command "/scoreboard players remove count_sb1 count_boss 1"
+                        delete {sb1}
+                        delete bossbar named "sb1-bar"
+                        delete loop-entity
+                        set {sb1.is.boss} to false
+        if {cb1.is.boss} is true:
+            set {_loc} to location of {cb1}
+            set {cb1.x} to round(x-coord of {_loc})
+            set {cb1.z} to round(z-coord of {_loc})
+            execute console command "forceload remove %{cb1.x}-33% %{cb1.z}-33% %{cb1.x}+33% %{cb1.z}+33%"
+            execute console command "forceload add %{cb1.x}-16% %{cb1.z}-16% %{cb1.x}+16% %{cb1.z}+16%"
+
+            if the block at {_loc} is water:
+                set {cb1.time.water} to {cb1.time.water} + 1
+            else:
+                set {cb1.time.water} to 0
+            if {cb1.time.water} >= 20:
+                set {cb1.time.water} to 0
+                broadcast "&2&lCreepeer boss I &abiến mất vào trong dòng nước mà không để lại dấu vết!"
+        
+                loop all creepers:
+                    if loop-entity has the scoreboard tag "cb1":
+
+                        execute console command "forceload remove %{cb1.x}-33% %{cb1.z}-33% %{cb1.x}+33% %{cb1.z}+33%"
+                        execute console command "/scoreboard players remove count_cb1 count_boss 1"
+                        set {cb1.is.boss} to false
+                        delete {cb1}
+                        delete bossbar named "cb1-bar"
+                        delete {pl.can.stop}
+                        delete loop-entity
+        if {spb1.is.boss} is true:
+            set {_loc} to location of {spb1}
+            set {spb1.x} to round(x-coord of {_loc})
+            set {spb1.z} to round(z-coord of {_loc})
+            execute console command "forceload remove %{spb1.x}-33% %{spb1.z}-33% %{spb1.x}+33% %{spb1.z}+33%"
+            execute console command "forceload add %{spb1.x}-16% %{spb1.z}-16% %{spb1.x}+16% %{spb1.z}+16%"
+            set y-coord of {_loc} to y-coord of {_loc} - 1
+
+            if the block at {_loc} is water:
+                set {spb1.time.water} to {spb1.time.water} + 1
+            else:
+                set {spb1.time.water} to 0
+            if {spb1.time.water} >= 20:
+                set {spb1.time.water} to 0
+                broadcast "&8&lSpider boss I &abiến mất vào trong dòng nước mà không để lại dấu vết!"
+        
+                loop all spiders:
+                    if loop-entity has the scoreboard tag "spb1":
+
+                        execute console command "forceload remove %{spb1.x}-33% %{spb1.z}-33% %{spb1.x}+33% %{spb1.z}+33%"
+                        execute console command "/scoreboard players remove count_spb1 count_boss 1"
+                        set {spb1.is.boss} to false
+                        delete {spb1}
+                        delete bossbar named "spb1-bar"
+
+                        delete loop-entity
+
+        if {zb2.is.boss} is true:
+            set {_loc} to location of {zb2}
+            set {zb2.x} to round(x-coord of {_loc})
+            set {zb2.z} to round(z-coord of {_loc})
+            execute console command "forceload remove %{zb2.x}-33% %{zb2.z}-33% %{zb2.x}+33% %{zb2.z}+33%"
+            execute console command "forceload add %{zb2.x}-16% %{zb2.z}-16% %{zb2.x}+16% %{zb2.z}+16%"
+
+
+command /returnboss:
+    permission: op
+    trigger:
+        loop all zombies:
+            if loop-entity has scoreboard tag "zb1":
+                set {zb1} to loop-entity
+
+                set {zb1uuid} to uuid of loop-entity
+                set {zb1.br} to true
+                set {zb1.is.boss} to true
+                set {zb1.cooldown1} to a random integer between 10 and 15
+                set {zb1.cooldown2} to a random integer between 10 and 15
+
+                message "Đã nhận diện lại zombie boss 1 thành công" to sender
+        
+        loop all skeletons:
+            if loop-entity has scoreboard tag "sb1":
+                set {sb1} to loop-entity
+
+                set {sb1uuid} to uuid of loop-entity
+                set {sb1.is.boss} to true
+
+                set {sb1.cooldown1} to a random integer between 5 and 6
+                set {sb1.cooldown2} to 0
+                set {sb1.cooldown3} to 3
+
+                set {sb1.using.skill} to false
+                set {sb1.pulling} to false
+
+                set {sb1}'s held item to bow
+                set {sb1.can.heal} to false
+
+                message "Đã nhận diện lại skeleton boss 1 thành công" to sender
+        
+        loop all creepers:
+            if loop-entity has scoreboard tag "cb1":
+                set {cb1} to loop-entity
+                set {cb1uuid} to uuid of loop-entity
+                set {cb1.is.boss} to true
+                set {cb1.cooldown1} to a random integer between 30 and 31
+                set {cb1.cooldown2} to 5
+                set {cb1.cooldown3} to 3
+
+                set {cb1.using.skill} to false
+                set {cb1.do.explode} to true
+                set {cb1.time.water} to 0
+
+                show {cb1}'s custom name
+                set {cb1.do.skill2} to false
+                set ai of {cb1} to true
+
+                remove invisibility from {cb1}
+                make {cb1} vincible
+                charge {cb1}
+                set {cb1.need.bossbar} to false
+                set {pl.can.stop} to 2
+
+                message "Đã nhận diện lại creeper boss 1 thành công" to sender
+        loop all spiders:
+            if loop-entity has scoreboard tag "spb1":
+                set {spb1} to loop-entity
+                set {spb1uuid} to uuid of loop-entity
+                set {spb1.is.boss} to true
+                set {spb1.cooldown1} to a random integer between 15 and 20
+                set {spb1.cooldown2} to a random integer between 6 and 10
+                set {spb1.cooldown3} to a random number between 2 and 20
+
+                set {spb1.time.water} to 0
+                set {spb1.using.skill} to false
+                
+                set ai of {spb1} to true
+
+                message "Đã nhận diện lại spider boss 1 thành công" to sender
+                
+                loop all players:
+                    set {spb1.%loop-player%.damage} to true
