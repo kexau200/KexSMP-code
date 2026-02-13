@@ -1,129 +1,98 @@
+options:
+    id: "zb2"
+    name: "&2&lZombie Boss II"
+    boss_hp: 200
+    boss_color: dark green
+    idle_heal_time: 30
+    idle_despawn_time: 300
+    rampage_kills: 25
+    msg_idle_heal: "&2&lZombie Boss II &acảm thấy quá chán, hắn tự hồi đầy máu cho bản thân!"
+    msg_idle_despawn: "&2&lZombie Boss II &acảm thấy quá chán, hắn tự biến mất khỏi thế giới!"
+    msg_rampage: "&2&lZombie Boss II &ađã tiêu diệt quá nhiều kẻ địch, hắn cảm thấy nhàm chán và bỏ đi!"
+    msg_death: "&a%attacker% đã đánh bại &2&lZombie Boss II&a!"
+    msg_spawn: "&cAi đó đã triệu hồi &2&lZombie Boss II&c!"
+
 on spawn of zombie:
     if entity has the scoreboard tag "zb2":
-        execute console command "/execute if score count_zb2 count_boss matches ..0 run truezb2"
-        execute console command "/execute if score count_zb2 count_boss matches 1.. run falsezb2"
-        if {zb2.canspawn} is true:
-            set {zb2.canspawn} to false
-            #spawn
+        if score of "count_zb2" for objective with id "count_boss" <= 0:
+            Boss_Init(entity, "zb2", formatted {@name}, {@boss_hp}, {@boss_color})
+            Boss_SetLimits("zb2", {@idle_heal_time}, {@idle_despawn_time}, {@rampage_kills})
+            
+            set {_msgIdle1} to formatted {@msg_idle_heal}
+            set {_msgIdle2} to formatted {@msg_idle_despawn}
+            set {_msgRampage} to formatted {@msg_rampage}
+            Boss_SetMessages("zb2", {_msgIdle1}, {_msgIdle2}, {_msgRampage})
+
             make 50 of flame at entity
             play sound "entity.ender_dragon.growl" with volume 2 at the entity
             strike lightning at entity
             make entity adult
-
             add "boss" to scoreboard tags of entity
-
             apply infinite glowing potion of tier 1 to entity
-            set {zb2} to entity
-            set {zb2uuid} to uuid of entity
-            set {zb2.is.boss} to true
 
-            set {zb2.form} to 1
-            set {zb2.cooldown0} to 10000
-            set {zb2.cooldown1} to 10
-            set {zb2.cooldown2} to 20
-            set {zb2.cooldown3} to 5
-            set {zb2.airjump} to 0
-            set {zb2.goup} to 0
+            set {boss::zb2::form} to 1
+            set {boss::zb2::cooldown0} to 10000
+            set {boss::zb2::cooldown1} to 10
+            set {boss::zb2::cooldown2} to 20
+            set {boss::zb2::cooldown3} to 5
+            set {boss::zb2::airjump} to 0
+            set {boss::zb2::goup} to 0
 
-            set {zb2.new.loc} to location of entity 
-            set {zb2.is.doing} to false
-
-            set {zb2.willcheck} to true
-
-            set {zb2.change_to_0} to false
-            set ai of {zb2} to false
-            set {zb2.form} to 0
-            set {zb2.count0} to 0
-            set {zb2.explosion} to 8
-            set {zb2.cooldownform} to 10
-            set {zb2.held} to shield
-            set {zb2.food} to false
-            delete {zb2.topstyle}
-            delete {Zb2.bottomstyle}
-
-            set {zb2.soul} to 0
-
-            set {zb2.cooldown_eat} to 10
-
-            delete {zb2.current.target}
-
-            set {zb2.bar} to bossbar named "zb2-bar" with title "&2&lZombie Boss II &e[ %{zb2.x}%, %{zb2.z}%]" with color dark green with style segmented 10 with progress 100
-            add all players to {zb2.bar}
-
-            broadcast "&cAi đó đã triệu hồi &2&lZombie Boss II&c!"
-            set entity's custom name to "&2&lZombie Boss II"
-
-            execute console command "/scoreboard players add count_zb2 count_boss 1"
-            execute console command "/scoreboard players set count_zb2 idle_time 0"
+            set {boss::zb2::new.loc} to location of entity 
+            set {boss::zb2::is.doing} to false
+            set {boss::zb2::willcheck} to true
+            set {boss::zb2::change_to_0} to false
             
+            set ai of {boss::zb2} to false
+            set {boss::zb2::form} to 0
+            set {boss::zb2::count0} to 0
+            set {boss::zb2::explosion} to 8
+            set {boss::zb2::cooldownform} to 10
+            set {boss::zb2::held} to shield
+            set {boss::zb2::food} to false
+            
+            delete {boss::zb2::topstyle}
+            delete {boss::zb2::bottomstyle}
+
+            set {boss::zb2::soul} to 0
+            set {boss::zb2::cooldown_eat} to 10
+
+            delete {boss::zb2::current.target}
+            broadcast formatted {@msg_spawn}
+
             set entity's max health to 200
             set entity's health to 200
+            set entity's scale attribute to 1.4
 
-            #equipment
             equip entity with unbreakable iron helmet
             equip entity with unbreakable iron chestplate
             equip entity with unbreakable iron leggings
             equip entity with unbreakable iron boots
-            set entity's main hand to {zb2.held}
+            set entity's main hand to {boss::zb2::held}
             set entity's off hand to shield
 
             zb2_check()
         else:
             cancel event
 
-command /truezb2:
-    permission: op
-    trigger:
-        set {zb2.canspawn} to true
-
-command /falsezb2:
-    permission: op
-    trigger:
-        set {zb2.canspawn} to false
-
-command /idle2zb2:
-    permission: op
-    trigger:
-        loop all zombies:
-            if loop-entity has the scoreboard tag "zb2":
-                delete loop-entity
-                broadcast "&2&lZombie Boss II &acảm thấy quá chán, hắn tự biến mất khỏi thế giới!"
-        
-                execute console command "forceload remove %{zb2.x}-33% %{zb2.z}-33% %{zb2.x}+33% %{zb2.z}+33%"
-                execute console command "/scoreboard players remove count_zb2 count_boss 1"
-                set {zb2.is.boss} to false
-                delete bossbar named "zb2-bar"
-                delete {zb2}
-
 function zb2_check():
-    # Lấy vị trí của entity làm tâm
-    set {_center} to location of block at {zb2}
+    set {_center} to location of block at {boss::zb2}
     
-    # Xác định vùng 7x7x7 (Bán kính 3 block mỗi hướng từ tâm: 3+1+3 = 7)
-    # Góc thấp nhất (Min)
     set {_corner1} to {_center}
     add -4 to x-coordinate of {_corner1}
     add -4 to y-coordinate of {_corner1}
     add -4 to z-coordinate of {_corner1}
 
-    # Góc cao nhất (Max)
     set {_corner2} to {_center}
     add 4 to x-coordinate of {_corner2}
     add 4 to y-coordinate of {_corner2}
     add 4 to z-coordinate of {_corner2}
         
-    # Khởi tạo biến đếm
     set {_solidBottom} to 0
     set {_solidTop} to 0
     
-    # Loop tất cả block trong khối lập phương này
     loop blocks within {_corner1} and {_corner2}:
         if loop-block is solid:
-            # --- Logic Phân Chia ---
-            # Tổng chiều cao Y là 7 (từ -3 đến +3 so với tâm)
-            # Dưới (7x4x7): Bao gồm các lớp Y-3, Y-2, Y-1 và Y0 (ngang chân entity)
-            # Trên (7x3x7): Bao gồm các lớp Y+1, Y+2, Y+3 (phía trên đầu entity)
-            
             if y-coord of loop-block <= y-coord of {_center}:
                 add 1 to {_solidBottom}
             else:
@@ -134,53 +103,49 @@ function zb2_check():
             else:
                 add 1 to {_solidTop}
 
-    # --- Khu vực chạy code của bạn ---
-    
-    # 1. Kiểm tra phần DƯỚI (7x4x7)
-    # Thay 10 bằng số lượng block solid bạn muốn kiểm tra
     if {_solidBottom} < 100:
-        # [CODE CỦA BẠN CHO PHẦN DƯỚI Ở ĐÂY]
-        set {zb2.bottomstyle} to true
+        set {boss::zb2::bottomstyle} to true
     else:
-        set {zb2.bottomstyle} to false
+        set {boss::zb2::bottomstyle} to false
 
-    # 2. Kiểm tra phần TRÊN (7x3x7)
-    # Thay 5 bằng số lượng block solid bạn muốn kiểm tra
     if {_solidTop} < 50:
-        set {zb2.topstyle} to true
+        set {boss::zb2::topstyle} to true
     else:
-        set {zb2.topstyle} to false
-    if {zb2.form} = 1:
-        if {zb2.bottomstyle} is true:
-            set {zb2.held} to iron sword of knockback 2
+        set {boss::zb2::topstyle} to false
+        
+    if {boss::zb2::form} = 1:
+        if {boss::zb2::bottomstyle} is true:
+            set {boss::zb2::held} to iron sword of knockback 2
         else:
-            set {zb2.held} to iron sword of sharpness 1
-    if {zb2.topstyle} is true:
-        set {zb2}'s knockback resistance attribute to 0.5
-        if {zb2.bottomstyle} is true:
-            set {zb2}'s knockback resistance attribute to 0.2
-            set {zb2.willdig} to false
-            if {zb2.form} = 2:
-                set {zb2}'s knockback resistance attribute to 0
+            set {boss::zb2::held} to iron sword of sharpness 1
+            
+    if {boss::zb2::topstyle} is true:
+        set {boss::zb2}'s knockback resistance attribute to 0.5
+        if {boss::zb2::bottomstyle} is true:
+            set {boss::zb2}'s knockback resistance attribute to 0.2
+            set {boss::zb2::willdig} to false
+            if {boss::zb2::form} = 2:
+                set {boss::zb2}'s knockback resistance attribute to 0
             stop
     else:
-        set {zb2}'s knockback resistance attribute to 0.8
-        if {zb2.form} = 1:
-            set {zb2.mine} to 6
-        else if {zb2.form} = 2:
-            set {zb2.mine} to 3
-    if {zb2.form} = 2:
-        set {zb2}'s knockback resistance attribute to 0
-    set {zb2.willdig} to true
+        set {boss::zb2}'s knockback resistance attribute to 0.8
+        if {boss::zb2::form} = 1:
+            set {boss::zb2::mine} to 6
+        else if {boss::zb2::form} = 2:
+            set {boss::zb2::mine} to 3
+            
+    if {boss::zb2::form} = 2:
+        set {boss::zb2}'s knockback resistance attribute to 0
+    set {boss::zb2::willdig} to true
 
 on death of player:
-    if {zb2.is.boss} is true:
-        if victim is {zb2.current.target}:
-            delete {zb2.current.target}
-            reset target of {zb2}
+    if {active_bosses::*} contains "zb2":
+        if victim is {boss::zb2::current.target}:
+            delete {boss::zb2::current.target}
+            reset target of {boss::zb2}
 
 on quit:
-    if player is {zb2.current.target}:
+    if player is {boss::zb2::current.target}:
         set {_time} to 10
         while player is not online:
             wait 1 seconds
@@ -190,8 +155,8 @@ on quit:
                 stop
 
 function zb2_check_target():
-    set {zb2.current.target} to nearest player relative to {zb2}
-    set {zb2}'s target to {zb2.current.target}
+    set {boss::zb2::current.target} to nearest player relative to {boss::zb2}
+    set {boss::zb2}'s target to {boss::zb2::current.target}
 
 on target:
     if entity has the scoreboard tag "zb2":
@@ -204,23 +169,25 @@ on untarget:
 on damage of zombie:
     if victim has scoreboard tag "zb2":
         if attacker is not a player:
-            cancel event #miễn nhiễm sát thương gián tiếps
+            cancel event
         else:
-            execute console command "/scoreboard players set count_zb2 idle_time 0"
-            if {zb2.form} = 0:
-                if {zb2.count0} <= 10:
-                    set {zb2.cooldownform} to min(10, {zb2.cooldownform} + 5)
-                add 1 to {zb2.count0}
+            set {boss::zb2::idle_time} to 0
+            
+            if {boss::zb2::form} = 0:
+                if {boss::zb2::count0} <= 10:
+                    set {boss::zb2::cooldownform} to min(10, {boss::zb2::cooldownform} + 5)
+                add 1 to {boss::zb2::count0}
                 play sound "item.shield.block" to attacker
                 cancel event
                 stop
-            if {zb2.form} = 1:
-                if {zb2}'s target is set:      
+                
+            if {boss::zb2::form} = 1:
+                if {boss::zb2}'s target is set:      
                     set {_v1} to velocity of victim
                     set y of {_v1} to 0
                     if {_v1} is vector(0,0,0):
                         set {_v1} to vector between victim and victim's target
-                    if {zb2.attacked} > 0:
+                    if {boss::zb2::attacked} > 0:
                         set {_v1} to vector between victim and victim's target
                     set {_v2} to vector between victim and attacker
                     set y of {_v2} to 0
@@ -229,73 +196,78 @@ on damage of zombie:
                         send actionbar "&c&lBạn chỉ có thể tấn công từ hướng trực diện!" to attacker
                         cancel event
                         stop
-                set {zb2.attacked} to 20
-                if {zb2.continue} is true:
-                    set {zb2.continue} to false
-                if {zb2.continue_eat} is true:
-                    set {zb2.continue_eat} to false
-                if {zb2.cooldownform} <= 0:
+                
+                set {boss::zb2::attacked} to 20
+                if {boss::zb2::continue} is true:
+                    set {boss::zb2::continue} to false
+                if {boss::zb2::continue_eat} is true:
+                    set {boss::zb2::continue_eat} to false
+                    
+                if {boss::zb2::cooldownform} <= 0:
                     if damage cause is an attack:
                         chance of 50%:
-                            set {zb2.change_to_0} to true
-            set {zb2} to victim
+                            set {boss::zb2::change_to_0} to true
+            
+            set {boss::zb2} to victim
             chance of 25%:
                 if distance between victim and attacker <= 10:
                     set victim's target to attacker
-                    set {zb2.current.target} to attacker
+                    set {boss::zb2::current.target} to attacker
 
 every 1 tick:
-    if {zb2.is.boss} is true:
+    if {active_bosses::*} contains "zb2":
 
-        if {zb2} is in water:
-            dry({zb2}, 3)
-        else if {zb2} is in lava:
-            dry({zb2}, 3)
-        else if {zb2} is in bubble column:
-            dry({zb2}, 3)
+        if {boss::zb2} is in water:
+            dry({boss::zb2}, 3)
+        else if {boss::zb2} is in lava:
+            dry({boss::zb2}, 3)
+        else if {boss::zb2} is in bubble column:
+            dry({boss::zb2}, 3)
 
-        if {zb2.is.doing} is false:
-            set {zb2.main.dirt.time} to {zb2.main.dirt.time} - 1
-            if {zb2.main.dirt.time} <= 0:
-                set {zb2}'s main hand to {zb2.held}
+        if {boss::zb2::is.doing} is false:
+            set {boss::zb2::main.dirt.time} to {boss::zb2::main.dirt.time} - 1
+            if {boss::zb2::main.dirt.time} <= 0:
+                set {boss::zb2}'s main hand to {boss::zb2::held}
 
-        if {zb2.form} = 0:
+        if {boss::zb2::form} = 0:
             stop
-        set {zb2}'s target to {zb2.current.target}
-        if {zb2}'s target has permission "op":
+            
+        set {boss::zb2}'s target to {boss::zb2::current.target}
+        if {boss::zb2}'s target has permission "op":
             zb2_check_target()
 
-        set bar progress of {zb2.bar} to {zb2}'s health *100/{zb2}'s max health
-        add all players to {zb2.bar}
+        add -1 to {boss::zb2::attacked}
 
-        add -1 to {zb2.attacked}
-
-        set {zb2.old.loc} to {zb2.new.loc}
-        set {zb2.new.loc} to location of {zb2}
-        set {_block.zb2} to location of block at {zb2}
-        if y-coord of {_block.zb2} - y-coord of {zb2} <= 0.48:
+        set {boss::zb2::old.loc} to {boss::zb2::new.loc}
+        set {boss::zb2::new.loc} to location of {boss::zb2}
+        set {_block.zb2} to location of block at {boss::zb2}
+        if y-coord of {_block.zb2} - y-coord of {boss::zb2} <= 0.48:
             set y-coord of {_block.zb2} to y-coord of {_block.zb2} + 1
-        set {_block.pl} to block at {zb2}'s target
+        set {_block.pl} to block at {boss::zb2}'s target
 
-        if {zb2}'s target is set:
-            if distance between {zb2.new.loc} and {zb2.old.loc} = 0:
-                get_to_target({zb2}, dirt, {zb2.mine}, {zb2.willdig})
+        if {boss::zb2}'s target is set:
+            if distance between {boss::zb2::new.loc} and {boss::zb2::old.loc} = 0:
+                get_to_target({boss::zb2}, dirt, {boss::zb2::mine}, {boss::zb2::willdig})
+            
             set {_delta} to max(abs(x-coord of {_block.pl} - x-coord of {_block.zb2}), abs(z-coord of {_block.pl} - z-coord of {_block.zb2}))
-            set {zb2.jump.cooldown} to {zb2.jump.cooldown} - 1
-            if {zb2.jump.cooldown} <= 0:
+            set {boss::zb2::jump.cooldown} to {boss::zb2::jump.cooldown} - 1
+            if {boss::zb2::jump.cooldown} <= 0:
                 if y-coord of {_block.pl} - y-coord of {_block.zb2} - {_delta} > 0.9:
                     if block below {_block.zb2} is solid:
-                        jump_build({zb2}, oak planks, {zb2.mine})
-        set {_v} to velocity of {zb2}
+                        jump_build({boss::zb2}, oak planks, {boss::zb2::mine})
+        
+        set {_v} to velocity of {boss::zb2}
         set y of {_v} to 0
         set {_v} to normalized {_v}
-        set {_loc} to location of block at {zb2}
+        set {_loc} to location of block at {boss::zb2}
         set {_loc2} to {_loc} ~ {_v}
-        if y-coord of block at {zb2} - y-coord of {zb2} <= 0.48:
+        
+        if y-coord of block at {boss::zb2} - y-coord of {boss::zb2} <= 0.48:
             add 1 to y-coord of {_loc}
         add 1 to y-coord of {_loc}
-        set {delta.x} to x-coord of {zb2} - x-coord of {_loc}
-        set {delta.z} to z-coord of {zb2} - z-coord of {_loc}
+        
+        set {delta.x} to x-coord of {boss::zb2} - x-coord of {_loc}
+        set {delta.z} to z-coord of {boss::zb2} - z-coord of {_loc}
         if {delta.x} > 0.2:
             add 1 to x-coord of {_loc}
         else if {delta.x} < 0.2:
@@ -304,15 +276,16 @@ every 1 tick:
             add 1 to z-coord of {_loc}
         else if {delta.z} < 0.2:
             add -1 to z-coord of {_loc}
+            
         loop blocks within {_loc} and {_loc2}:
             if loop-block is tagged with tag "minecraft:can_trap":
-                iron_break_as({zb2}, loop-block, {zb2.mine})
-                set velocity of {zb2} to vector(0,0,0)
+                iron_break_as({boss::zb2}, loop-block, {boss::zb2::mine})
+                set velocity of {boss::zb2} to vector(0,0,0)
                 stop loop
         
-        if {zb2.bottomstyle} is true:
-            if {zb2.is.doing} is false:
-                if {zb2.cooldown1} <= 0:
+        if {boss::zb2::bottomstyle} is true:
+            if {boss::zb2::is.doing} is false:
+                if {boss::zb2::cooldown1} <= 0:
                     loop all players:
                         set {_block.loop} to location of block at loop-player
                         set {_delta.y} to y-coord of {_block.zb2} - y-coord of {_block.loop}
@@ -327,26 +300,30 @@ every 1 tick:
                                 if {_add} is not false:
                                     add loop-player to {_dripvictim::*}
                                 set {_add} to true
+                    
                     if {_dripvictim::*} is set:
                         set {_dripvictim} to a random element out of {_dripvictim::*}
                         set {_block.pl} to block at {_dripvictim}
                         set {_block.above.pl} to location of {_block.pl}
                         set y-coord of {_block.above.pl} to y-coord of {_block.zb2} - 1
+                        
                         loop blocks within {_block.above.pl} and block 4 blocks above {_block.above.pl}:
                             if loop-block is solid:
                                 set {_blockdrip} to loop-block
                                 stop loop
                         if {_blockdrip} is not set:
                             set {_blockdrip} to block at {_block.above.pl}
-                        dripstone({zb2}, {_blockdrip}, cobblestone, {zb2.mine}, 0.1)
-                        set {zb2.cooldown1} to 5
+                        
+                        dripstone({boss::zb2}, {_blockdrip}, cobblestone, {boss::zb2::mine}, 0.1)
+                        set {boss::zb2::cooldown1} to 5
                         zb2_cooldown_reset(3)
                     else:
-                        set {zb2.cooldown1} to 2
-                if {zb2.cooldown2} <= 0:
+                        set {boss::zb2::cooldown1} to 2
+                
+                if {boss::zb2::cooldown2} <= 0:
                     loop all players:
                         set {_block.loop} to location of block at loop-player
-                        if distance between loop-player and {zb2} < 40:
+                        if distance between loop-player and {boss::zb2} < 40:
                             loop blocks within block 3 blocks above loop-player and block at loop-player:
                                 if loop-block is solid:
                                     set {_add} to false
@@ -354,33 +331,39 @@ every 1 tick:
                             if {_add} is not false:
                                 add loop-player to {_hookvictim::*}
                             set {_add} to true
+                    
                     if {_hookvictim::*} is set:
                         set {_hookvictim} to a random element out of {_hookvictim::*}
-                        if {zb2.form} = 2:
-                            if y-coord of {zb2} - y-coord of {_hookvictim} > 3:
-                                set {zb2.airjump} to 5
+                        if {boss::zb2::form} = 2:
+                            if y-coord of {boss::zb2} - y-coord of {_hookvictim} > 3:
+                                set {boss::zb2::airjump} to 5
                             else:
-                                add 3 to {zb2.airjump}
-                        if {zb2.airjump} >= 5:
-                            set {zb2.cooldown2} to 25
-                            jump_to_target({zb2}, {_hookvictim}, 1.5, 0.2, 3, 3)
+                                add 3 to {boss::zb2::airjump}
+                                if {boss::zb2::airjump} >= 5:
+                                    set {boss::zb2::cooldown2} to 25
+                                    jump_to_target({boss::zb2}, {_hookvictim}, 1.5, 0.2, 3, 3)
+                                else:
+                                    zb2_hook({_hookvictim})
+                                    add 1 to {boss::zb2::airjump}
+                                    set {boss::zb2::cooldown2} to 30
                         else:
-                            zb2_hook({_hookvictim})
-                            add 1 to {zb2.airjump}
-                            set {zb2.cooldown2} to 30
+                            zb2_eat({boss::zb2::food})
+                            set {boss::zb2::cooldown2} to 8
                         zb2_cooldown_reset(5)
                     else:
-                        zb2_eat({zb2.food})
-                        set {zb2.cooldown2} to 8
-                if {zb2.cooldown3} <= 0:
+                        zb2_eat({boss::zb2::food})
+                        set {boss::zb2::cooldown2} to 8
+                
+                if {boss::zb2::cooldown3} <= 0:
                     loop all players:
-                        if distance between loop-player and {zb2} < 5:
+                        if distance between loop-player and {boss::zb2} < 5:
                             set {_loc} to location of block at loop-player
                             if y-coord of {_loc} - y-coord of loop-player > 0.48:
                                 add -1 to y-coord of {_loc}
                             set {_loc2} to {_loc}
                             set {delta.x} to x-coord of loop-player - x-coord of {_loc}
                             set {delta.z} to z-coord of loop-player - z-coord of {_loc}
+                            
                             if {delta.x} > 0.205:
                                 add 1 to x-coord of {_loc}
                             else if {delta.x} < 0.205:
@@ -389,6 +372,7 @@ every 1 tick:
                                 add 1 to z-coord of {_loc}
                             else if {delta.z} < 0.205:
                                 add -1 to z-coord of {_loc}
+                           
                             loop blocks within block at {_loc} and block at {_loc2}:
                                 if loop-block is solid:
                                     if block below loop-block is solid:
@@ -396,59 +380,64 @@ every 1 tick:
                                         stop loop
                                     else:
                                         add location at loop-block to {_spleef.%loop-player%::*}
+                            
                             if {_spleef.%loop-player%::*} is set:
                                 add loop-player to {_spleef::*}
+                    
                     if {_spleef::*} is set:
                         set {_pl} to a random element out of {_spleef::*}
-                        set {zb2.spleef::*} to {_spleef.%{_pl}%::*}
+                        set {boss::zb2::spleef::*} to {_spleef.%{_pl}%::*}
                         zb2_spleef()
-                        set {zb2.cooldown3} to 5
+                        set {boss::zb2::cooldown3} to 5
                         zb2_cooldown_reset(2)
                     else:
-                        set {zb2.cooldown3} to 1
-            if {zb2.airjump} < 5:
-                if block at {zb2} is not solid:
+                        set {boss::zb2::cooldown3} to 1
+            
+            if {boss::zb2::airjump} < 5:
+                if block at {boss::zb2} is not solid:
                     set {_loop.time} to 2
                     while {_loop.time} >= 0:
-                        if block {_loop.time} blocks below {zb2} is solid:
+                        if block {_loop.time} blocks below {boss::zb2} is solid:
                             stop
                         add -1 to {_loop.time}
-                    build_below({zb2}, dirt)
-                    set {zb2.main.dirt.time} to 5
+                    build_below({boss::zb2}, dirt)
+                    set {boss::zb2::main.dirt.time} to 5
+        
         else:
-            if {zb2.is.doing} is false:
-                if {zb2.cooldown1} <= 0:
-                    if distance between {zb2} and {zb2}'s target < 4:
-                        set {_block.target} to location of block at {zb2}'s target
+            if {boss::zb2::is.doing} is false:
+                if {boss::zb2::cooldown1} <= 0:
+                    if distance between {boss::zb2} and {boss::zb2}'s target < 4:
+                        set {_block.target} to location of block at {boss::zb2}'s target
                         if block at {_block.target} is not tagged with tag "minecraft:replaceable":
-                            if y-coord of {_block.target} - y-coord of {zb2}'s target <= 0.48:
+                            if y-coord of {_block.target} - y-coord of {boss::zb2}'s target <= 0.48:
                                 add 1 to y-coord of {_block.target}
                         if block at {_block.target} is tagged with tag "minecraft:replaceable":
                             zb2_place({_block.target})
                             zb2_cooldown_reset(3)
                         else:
-                            set {zb2.cooldown1} to 2
+                            set {boss::zb2::cooldown1} to 2
                     else:
-                        set {zb2.cooldown1} to 2
-                if {zb2.cooldown2} <= 0:
-                    if {zb2.topstyle} is false:
-                        if distance between {zb2} and {zb2}'s target < 4:
-                            create an explosion of force 1 at {zb2}
-                            teleport {zb2} to {zb2}'s target
-                            add 1 to {zb2.goup}
-                            set {zb2.cooldown2} to 12
+                        set {boss::zb2::cooldown1} to 2
+                
+                if {boss::zb2::cooldown2} <= 0:
+                    if {boss::zb2::topstyle} is false:
+                        if distance between {boss::zb2} and {boss::zb2}'s target < 4:
+                            create an explosion of force 1 at {boss::zb2}
+                            teleport {boss::zb2} to {boss::zb2}'s target
+                            add 1 to {boss::zb2::goup}
+                            set {boss::zb2::cooldown2} to 12
                             zb2_cooldown_reset(2)
-                        else if distance between {zb2} and {zb2}'s target < 30:
-                            set {_v} to vector between {zb2} and {zb2}'s target
-                            push {zb2} along vector {_v} with speed 4
-                            set {zb2.cooldown2} to 8
-                            add 1 to {zb2.goup}
+                        else if distance between {boss::zb2} and {boss::zb2}'s target < 30:
+                            set {_v} to vector between {boss::zb2} and {boss::zb2}'s target
+                            push {boss::zb2} along vector {_v} with speed 4
+                            set {boss::zb2::cooldown2} to 8
+                            add 1 to {boss::zb2::goup}
                         else:
-                            set {zb2.cooldown2} to 2
+                            set {boss::zb2::cooldown2} to 2
                     else:
                         chance of 25%:
                             loop all players:
-                                if distance between loop-player and {zb2} < 30:
+                                if distance between loop-player and {boss::zb2} < 30:
                                     loop blocks within block 3 blocks above loop-player and block at loop-player:
                                         if loop-block is solid:
                                             set {_add} to false
@@ -456,222 +445,232 @@ every 1 tick:
                                     if {_add} is not false:
                                         add loop-player to {_hookvictim::*}
                                     set {_add} to true
+                            
                             if {_hookvictim::*} is set:
                                 set {_hookvictim} to a random element out of {_hookvictim::*}
-                                set {zb2.current.target} to {_hookvictim}
+                                set {boss::zb2::current.target} to {_hookvictim}
                                 zb2_hook({_hookvictim})
-                                set {zb2.cooldown2} to 30
+                                set {boss::zb2::cooldown2} to 30
                                 zb2_cooldown_reset(5)
-                                add 2 to {zb2.goup}
+                                add 2 to {boss::zb2::goup}
                             else:
-                                zb2_eat({zb2.food})
-                                set {zb2.cooldown2} to 8
+                                zb2_eat({boss::zb2::food})
+                                set {boss::zb2::cooldown2} to 8
                         else:
-                            if distance between {zb2} and {zb2}'s target < 8:
-                                set {_v} to vector between {zb2} and {zb2}'s target
-                                push {zb2} up with speed 0.5
-                                push {zb2} along vector {_v} with speed 2.5
-                                set {zb2.cooldown2} to 8
-                                add 1 to {zb2.goup}
-                            else if distance between {zb2} and {zb2}'s target < 30:
-                                create an explosion of force 1 at {zb2}
-                                jump_to_target({zb2}, {zb2}'s target, 1.2, 0.15, 0.5, 3)
-                                set {zb2.cooldown2} to a random integer between 15 and 20
+                            if distance between {boss::zb2} and {boss::zb2}'s target < 8:
+                                set {_v} to vector between {boss::zb2} and {boss::zb2}'s target
+                                push {boss::zb2} up with speed 0.5
+                                push {boss::zb2} along vector {_v} with speed 2.5
+                                set {boss::zb2::cooldown2} to 8
+                                add 1 to {boss::zb2::goup}
+                            else if distance between {boss::zb2} and {boss::zb2}'s target < 30:
+                                create an explosion of force 1 at {boss::zb2}
+                                jump_to_target({boss::zb2}, {boss::zb2}'s target, 1.2, 0.15, 0.5, 3)
+                                set {boss::zb2::cooldown2} to a random integer between 15 and 20
                                 zb2_cooldown_reset(5)
-                                add 1 to {zb2.goup}
+                                add 1 to {boss::zb2::goup}
                             else:
-                                set {zb2.cooldown2} to 2
-                if {zb2.cooldown3} <= 0:
-                    if distance between {zb2} and {zb2}'s target < 4:
-                        set {_block.target} to location of block at {zb2}'s target
+                                set {boss::zb2::cooldown2} to 2
+                
+                if {boss::zb2::cooldown3} <= 0:
+                    if distance between {boss::zb2} and {boss::zb2}'s target < 4:
+                        set {_block.target} to location of block at {boss::zb2}'s target
                         if block at {_block.target} is not tagged with tag "minecraft:replaceable":
-                            if y-coord of {_block.target} - y-coord of {zb2}'s target <= 0.48:
+                            if y-coord of {_block.target} - y-coord of {boss::zb2}'s target <= 0.48:
                                 add 1 to y-coord of {_block.target}
                         if block at {_block.target} is tagged with tag "minecraft:replaceable":
                             zb2_place_ulti({_block.target})
                             zb2_cooldown_reset(5)
                         else:
-                            set {zb2.cooldown3} to 2
+                            set {boss::zb2::cooldown3} to 2
                     else:
-                        set {zb2.cooldown3} to 2
+                        set {boss::zb2::cooldown3} to 2
 
 function zb2_go_down():
-    while {zb2.bottomstyle} is true:
-        delete {zb2.current.target}
-        reset {zb2}'s target
-        teleport {zb2} to location(x-coord of block at {zb2}, y-coord of {zb2}, z-coord of block at {zb2}, world of {zb2}, yaw of {zb2}, pitch of {zb2})
+    while {boss::zb2::bottomstyle} is true:
+        delete {boss::zb2::current.target}
+        reset {boss::zb2}'s target
+        teleport {boss::zb2} to location(x-coord of block at {boss::zb2}, y-coord of {boss::zb2}, z-coord of block at {boss::zb2}, world of {boss::zb2}, yaw of {boss::zb2}, pitch of {boss::zb2})
         zb2_check()
-        if block at {zb2} is solid:
-            iron_break_as({zb2}, block at {zb2}, {zb2.mine})
-        else if block below {zb2} is solid:
-            iron_break_as({zb2}, block below {zb2}, {zb2.mine})
+        if block at {boss::zb2} is solid:
+            iron_break_as({boss::zb2}, block at {boss::zb2}, {boss::zb2::mine})
+        else if block below {boss::zb2} is solid:
+            iron_break_as({boss::zb2}, block below {boss::zb2}, {boss::zb2::mine})
         wait 10 tick
-    set {zb2.airjump} to 0
+    set {boss::zb2::airjump} to 0
 
 function zb2_go_up():
-    set {zb2.continue} to true
-    delete {zb2.current.target}
-    reset {zb2}'s target
-    set {zb2.willcheck} to false
-    while {zb2.topstyle} is false:
-        teleport {zb2} to location(x-coord of block at {zb2}, y-coord of {zb2}, z-coord of block at {zb2}, world of {zb2}, yaw of {zb2}, pitch of {zb2})
-        jump_build({zb2}, oak planks, {zb2.mine})
+    set {boss::zb2::continue} to true
+    delete {boss::zb2::current.target}
+    reset {boss::zb2}'s target
+    set {boss::zb2::willcheck} to false
+    
+    while {boss::zb2::topstyle} is false:
+        teleport {boss::zb2} to location(x-coord of block at {boss::zb2}, y-coord of {boss::zb2}, z-coord of block at {boss::zb2}, world of {boss::zb2}, yaw of {boss::zb2}, pitch of {boss::zb2})
+        jump_build({boss::zb2}, oak planks, {boss::zb2::mine})
         zb2_cooldown_reset(5)
         wait 5 tick
         zb2_check()
+        
     set {_tick} to 0
     while {_tick} < 300:
-        teleport {zb2} to location(x-coord of block at {zb2}, y-coord of {zb2}, z-coord of block at {zb2}, world of {zb2}, yaw of {zb2}, pitch of {zb2})
-        jump_build({zb2}, oak planks, {zb2.mine})
+        teleport {boss::zb2} to location(x-coord of block at {boss::zb2}, y-coord of {boss::zb2}, z-coord of block at {boss::zb2}, world of {boss::zb2}, yaw of {boss::zb2}, pitch of {boss::zb2})
+        jump_build({boss::zb2}, oak planks, {boss::zb2::mine})
         zb2_cooldown_reset(5)
-        set {zb2.cooldown_eat} to 5
-        if {zb2.continue} is false:
-            set {zb2.willcheck} to true
+        set {boss::zb2::cooldown_eat} to 5
+        if {boss::zb2::continue} is false:
+            set {boss::zb2::willcheck} to true
             stop
         wait 14 tick
         add 14 to {_tick}
     zb2_check()
     wait 40 ticks
-    if {zb2.topstyle} is false:
+    if {boss::zb2::topstyle} is false:
         zb2_go_up()
     else:
-        set {zb2.willcheck} to true
+        set {boss::zb2::willcheck} to true
 
 function zb2_eat(food: boolean):
     wait 1 tick
-    if {zb2.is.doing} is true:
+    if {boss::zb2::is.doing} is true:
         stop
-    if {zb2.form} is not 1:
+    if {boss::zb2::form} is not 1:
         stop
-    if {zb2}'s max health - {zb2}'s health = 0:
+    if {boss::zb2}'s max health - {boss::zb2}'s health = 0:
         stop
-    if {zb2.cooldown_eat} > 10:
+    if {boss::zb2::cooldown_eat} > 10:
         stop
-    set {zb2.continue_eat} to true
-    set {zb2.cooldown_eat} to 10
+        
+    set {boss::zb2::continue_eat} to true
+    set {boss::zb2::cooldown_eat} to 10
     zb2_cooldown_reset(3)
-    set {zb2.is.doing} to true
-    set {_held} to {zb2}'s held item
+    set {boss::zb2::is.doing} to true
+    set {_held} to {boss::zb2}'s held item
+    
     if {_food} is false:
-        set {zb2.eat.time} to 50
+        set {boss::zb2::eat.time} to 50
         set {_eat} to cooked beef
     else:
-        set {zb2.eat.time} to 100
+        set {boss::zb2::eat.time} to 100
         set {_eat} to golden apple
-    while {zb2.eat.time} > 0:
-        play sound "entity.generic.eat" at {zb2}
-        add -5 to {zb2.eat.time}
-        set {zb2}'s main hand to {_eat}
-        make {zb2} swing main hand
+        
+    while {boss::zb2::eat.time} > 0:
+        play sound "entity.generic.eat" at {boss::zb2}
+        add -5 to {boss::zb2::eat.time}
+        set {boss::zb2}'s main hand to {_eat}
+        make {boss::zb2} swing main hand
         wait 5 ticks
-        if {zb2.continue_eat} is false:
+    
+        if {boss::zb2::continue_eat} is false:
             broadcast "&2&lZombie Boss II &avừa bị ngăn cản việc ăn và không thể dùng chiêu trong một khoảng thời gian!"
-            play sound "entity.ender_dragon.hurt" at {zb2}
+            play sound "entity.ender_dragon.hurt" at {boss::zb2}
             zb2_cooldown_reset(15)
-            set {zb2}'s held item to {_held}
-            set {zb2.is.doing} to false
+            set {boss::zb2}'s held item to {_held}
+            set {boss::zb2::is.doing} to false
             stop
+        
     if {_food} is false:
-        heal {zb2} by 20
+        heal {boss::zb2} by 20
         broadcast "&2&lZombie Boss II &evừa ăn thịt bò và hồi &a20 &emáu!"
     else:
-        heal {zb2} by 40
-        apply regeneration potion of tier 1 to {zb2} for 15 seconds
+        heal {boss::zb2} by 40
+        apply regeneration potion of tier 1 to {boss::zb2} for 15 seconds
         broadcast "&2&lZombie Boss II &evừa ăn táo vàng và hồi &a40 &emáu kèm hiệu ứng hồi máu!"
-    set {zb2}'s held item to {_held}
-    set {zb2.is.doing} to false
-    set {zb2.continue} to false
-    play sound "entity.player.burp" at {zb2}
+        
+    set {boss::zb2}'s held item to {_held}
+    set {boss::zb2::is.doing} to false
+    set {boss::zb2::continue} to false
+    play sound "entity.player.burp" at {boss::zb2}
 
 function zb2_place_ulti(loc: location):
-    if {zb2.is.doing} is true:
-        set {zb2.cooldown3} to 2
+    if {boss::zb2::is.doing} is true:
+        set {boss::zb2::cooldown3} to 2
         stop
-    set {zb2.is.doing} to true
-    set {zb2}'s main hand to cobweb
+    set {boss::zb2::is.doing} to true
+    set {boss::zb2}'s main hand to cobweb
     wait 5 tick
-    make {zb2} swing main hand
+    make {boss::zb2} swing main hand
     set block at {_loc} to cobweb
     set {_tick} to 15
     while {_tick} > 0:
         add -1 to {_tick}
         wait 1 tick
     if block at {_loc} is not cobweb:
-        set {zb2.is.doing} to false
-        set {zb2.cooldown3} to 10
+        set {boss::zb2::is.doing} to false
+        set {boss::zb2::cooldown3} to 10
         stop
     loop all players:
         if distance between loop-player and {_loc} < 2.5:
             if max(abs(x-coord of {_loc} - x-coord of loop-player),abs(z-coord of {_loc} - z-coord of loop-player)) < 0.7:
-                set {zb2}'s main hand to lava bucket
+                set {boss::zb2}'s main hand to lava bucket
                 wait 5 ticks
-                set {zb2}'s main hand to bucket
-                make {zb2} swing main hand
+                set {boss::zb2}'s main hand to bucket
+                make {boss::zb2} swing main hand
                 if y-coord of {_loc} - y-coord of loop-player < 0.8:
                     set block above {_loc} to lava
                 else:
                     set block below {_loc} to lava
-                reset target of {zb2}
-                delete {zb2.current.target}
-                set {_v} to vector between {_loc} and {zb2}
+                reset target of {boss::zb2}
+                delete {boss::zb2::current.target}
+                set {_v} to vector between {_loc} and {boss::zb2}
                 wait 10 ticks
-                push {zb2} along {_v} with speed 1
-                set {zb2.is.doing} to false
-                set {zb2.cooldown3} to 25
+                push {boss::zb2} along {_v} with speed 1
+                set {boss::zb2::is.doing} to false
+                set {boss::zb2::cooldown3} to 25
                 stop
-    set {zb2.is.doing} to false
-    set {zb2.cooldown3} to 10
+    set {boss::zb2::is.doing} to false
+    set {boss::zb2::cooldown3} to 10
 
 function zb2_place(loc: location):
-    if {zb2.is.doing} is true:
-        set {zb2.cooldown1} to 2
+    if {boss::zb2::is.doing} is true:
+        set {boss::zb2::cooldown1} to 2
         stop
-    set {zb2.cooldown1} to 2
+    set {boss::zb2::cooldown1} to 2
     wait 5 ticks
     chance of 50%:
-        set {zb2}'s main hand to pufferfish bucket
-        set {zb2.main.dirt.time} to 6
+        set {boss::zb2}'s main hand to pufferfish bucket
+        set {boss::zb2::main.dirt.time} to 6
         wait 5 ticks
-        make {zb2} swing main hand
-        set {zb2}'s main hand to bucket
-        set {zb2.main.dirt.time} to 5
+        make {boss::zb2} swing main hand
+        set {boss::zb2}'s main hand to bucket
+        set {boss::zb2::main.dirt.time} to 5
         set block at {_loc} to water
         spawn a pufferfish at {_loc}
     else:
         wait 5 ticks
-        set {zb2}'s main hand to lava bucket
-        set {zb2.main.dirt.time} to 6
+        set {boss::zb2}'s main hand to lava bucket
+        set {boss::zb2::main.dirt.time} to 6
         wait 5 ticks
-        set {zb2}'s main hand to bucket
-        make {zb2} swing main hand
-        set {zb2.main.dirt.time} to 10
+        set {boss::zb2}'s main hand to bucket
+        make {boss::zb2} swing main hand
+        set {boss::zb2::main.dirt.time} to 10
         set block at {_loc} to lava
-    set {zb2.cooldown1} to 10
+    set {boss::zb2::cooldown1} to 10
 
 function zb2_spleef():
     set {_tick} to 50
-    while {zb2.spleef::1} is set:
+    while {boss::zb2::spleef::1} is set:
         add -1 to {_tick}
         wait 1 tick
-        loop {zb2.spleef::*}:
+        loop {boss::zb2::spleef::*}:
             if block at loop-value is solid:
-                iron_break_as({zb2}, block at loop-value, {zb2.mine})
+                iron_break_as({boss::zb2}, block at loop-value, {boss::zb2::mine})
             else:
-                remove loop-value from {zb2.spleef::*}
+                remove loop-value from {boss::zb2::spleef::*}
         if {_tick} < 0:
             stop
 
 function zb2_hook(victim: entity):
-    set {zb2.current.target} to {_victim}
-    set {zb2}'s target to {_victim}
-    leash {zb2} to {_victim}
-    set {zb2.is.hooking} to true
-    set {zb2.is.doing} to true
-    set {zb2}'s held item to fishing rod
-    make {zb2} swing main hand
+    set {boss::zb2::current.target} to {_victim}
+    set {boss::zb2}'s target to {_victim}
+    leash {boss::zb2} to {_victim}
+    set {boss::zb2::is.hooking} to true
+    set {boss::zb2::is.doing} to true
+    set {boss::zb2}'s held item to fishing rod
+    make {boss::zb2} swing main hand
     wait 20 ticks
-    make {zb2} swing main hand
-    set {_v} to vector between {_victim} and {zb2}
+    make {boss::zb2} swing main hand
+    set {_v} to vector between {_victim} and {boss::zb2}
     if y of {_v} > 0:
         set velocity of {_victim} to vector(0.5,0,0.5)
         push {_victim} up with speed min(y of {_v} * 0.07 + 1, 3)
@@ -680,6 +679,10 @@ function zb2_hook(victim: entity):
         set velocity of {_victim} to vector(0.5,0,0.5)
         push {_victim} up with speed max(2 - y of {_v} * 0.1, 0.5)
         set {_new} to location of {_victim}
+        
+    set {_old} to location of {_victim}
+    add -1 to y-coord of {_old}
+
     set {_tick} to 0
     while y-coord of {_new} - y-coord of {_old} > 0.02:
         set {_old} to {_new}
@@ -688,37 +691,39 @@ function zb2_hook(victim: entity):
         set {_new} to location of {_victim}
         if {_tick} > 100:
             stop loop
+            
     wait 10 ticks
-    make {zb2} swing main hand
+    make {boss::zb2} swing main hand
     set {_tick} to 0
-    while distance between {_victim} and {zb2} > 3:
-        set {_v} to vector between {_victim} and {zb2}
+    while distance between {_victim} and {boss::zb2} > 3:
+        set {_v} to vector between {_victim} and {boss::zb2}
         set x of velocity of {_victim} to x of {_v} * 0.1
         set z of velocity of {_victim} to z of {_v} * 0.1
         set y of velocity of {_victim} to y of {_v} * 0.1
         wait 1 tick
         add 1 to {_tick}
         if {_tick} > 10:
-            set {zb2}'s held item to {zb2.held}
+            set {boss::zb2}'s held item to {boss::zb2::held}
         if {_tick} > 100:
             stop loop
-    set {zb2}'s held item to {zb2.held}
+            
+    set {boss::zb2}'s held item to {boss::zb2::held}
     wait 5 tick
-    make {zb2} attack {_victim}
-    make {zb2} swing main hand
-    set {zb2.is.doing} to false
-    set {zb2.is.hooking} to false
-    unleash holder of {zb2}
+    make {boss::zb2} attack {_victim}
+    make {boss::zb2} swing main hand
+    set {boss::zb2::is.doing} to false
+    set {boss::zb2::is.hooking} to false
+    unleash holder of {boss::zb2}
 
 function zb2_cooldown_reset(value: number):
-    set {zb2.cooldown1} to max({zb2.cooldown1}, {_value})
-    set {zb2.cooldown2} to max({zb2.cooldown2}, {_value})
-    set {zb2.cooldown3} to max({zb2.cooldown3}, {_value})
-    set {zb2.cooldownform} to max({zb2.cooldownform}, {_value})
+    set {boss::zb2::cooldown1} to max({boss::zb2::cooldown1}, {_value})
+    set {boss::zb2::cooldown2} to max({boss::zb2::cooldown2}, {_value})
+    set {boss::zb2::cooldown3} to max({boss::zb2::cooldown3}, {_value})
+    set {boss::zb2::cooldownform} to max({boss::zb2::cooldownform}, {_value})
 
 on zombie move:
     if entity has the scoreboard tag "zb2":
-        if {zb2.is.hooking} is true:
+        if {boss::zb2::is.hooking} is true:
             cancel event
 
 on unleash:
@@ -726,8 +731,8 @@ on unleash:
         cancel event
 
 function dripstone(doer: entity, block: block, support: any named thing, time: number, creep: number):
-    if {_doer} is {zb2}:
-        if {zb2.is.doing} is true:
+    if {_doer} is {boss::zb2}:
+        if {boss::zb2::is.doing} is true:
             stop
     set {_tick} to 0
     set {_chance} to a random number between 0 and 1
@@ -739,7 +744,7 @@ function dripstone(doer: entity, block: block, support: any named thing, time: n
     while {_tick} < 100:
         set velocity of {_doer} to vector(0,0,0)
         add 1 to {_tick}
-        if {zb2.is.doing} is false:
+        if {boss::zb2::is.doing} is false:
             if {_block} is not solid:
                 if {_block} is not air:
                     iron_break_as({_doer}, {_block}, {_time})
@@ -754,119 +759,104 @@ function dripstone(doer: entity, block: block, support: any named thing, time: n
     iron_break_as({_doer}, {_block}, {_time})
 
 every 10 seconds:
-    if {zb2.is.boss} is not true:
-        stop
-    if {zb2.willcheck} is false:
-        stop
-    zb2_check()
-    if {zb2.current.target} is not set:
-        zb2_check_target()            
+    if {active_bosses::*} contains "zb2":
+        if {boss::zb2::willcheck} is false:
+            stop
+        zb2_check()
+        if {boss::zb2::current.target} is not set:
+            zb2_check_target()            
 
 every 20 tick:
-    if {zb2.is.boss} is true:
-        if distance between {zb2} and {zb2}'s target > 50:
-            zb2_check_target()
-        set bar title of {zb2.bar} to "&2&lZombie Boss II &e[ %{zb2.x}%, %{zb2.z}%]"
-
-        execute console command "dochunkload"
-        execute console command "scoreboard players add count_zb2 idle_time 1"
-        execute console command "execute if score count_zb2 idle_time matches 300.. run idle2zb2"
-
-        add -1 to {zb2.cooldown1}
-        add -1 to {zb2.cooldown2}
-        add -1 to {zb2.cooldown3}
-        add -1 to {zb2.cooldownform}
-        if {zb2.cooldownform} <= 0:
-            if {zb2.form} = 1:
-                if {zb2.change_to_0} is true:
-                    delete {zb2.current.target}
-                    reset target of {zb2}
-                    set {zb2.willcheck} to false
-                    set {zb2.change_to_0} to false
-                    set ai of {zb2} to false
-                    set {zb2.form} to 0 #Dạng khiên
-                    set {zb2.count0} to 0
-                    set {zb2.explosion} to 0
-                    set {zb2.cooldownform} to 10
-                    set {zb2.held} to shield
+    if {active_bosses::*} contains "zb2":
+        Boss_ReduceCooldown("zb2", 1, 1)
+        Boss_ReduceCooldown("zb2", 2, 1)
+        Boss_ReduceCooldown("zb2", 3, 1)
+        
+        add -1 to {boss::zb2::cooldownform}
+        
+        if {boss::zb2::cooldownform} <= 0:
+            if {boss::zb2::form} = 1:
+                if {boss::zb2::change_to_0} is true:
+                    delete {boss::zb2::current.target}
+                    reset target of {boss::zb2}
+                    set {boss::zb2::willcheck} to false
+                    set {boss::zb2::change_to_0} to false
+                    set ai of {boss::zb2} to false
+                    set {boss::zb2::form} to 0
+                    set {boss::zb2::count0} to 0
+                    set {boss::zb2::explosion} to 0
+                    set {boss::zb2::cooldownform} to 10
+                    set {boss::zb2::held} to shield
                     zb2_cooldown_reset(5)
-            else if {zb2.form} = 2:
-                set {zb2}'s off hand to shield
-                remove speed from {zb2}
-                set {zb2.held} to iron sword
-                set {zb2.mine} to 10
-                set {zb2.form} to 1 #Dạng kiếm
-                set {zb2.cooldownform} to 250
+            else if {boss::zb2::form} = 2:
+                set {boss::zb2}'s off hand to shield
+                remove speed from {boss::zb2}
+                set {boss::zb2::held} to iron sword
+                set {boss::zb2::mine} to 10
+                set {boss::zb2::form} to 1
+                set {boss::zb2::cooldownform} to 250
                 zb2_check()
                 zb2_cooldown_reset(5)
                 broadcast "&2&lZombie Boss II &eđã quay trở lại dạng bình thường!"
             else:
-                set {zb2}'s off hand to air
-                set {zb2.willcheck} to true
-                set ai of {zb2} to true
-                apply infinite speed potion of tier 2 to {zb2}
-                set {zb2.mine} to 5
-                set {zb2.form} to 2 #Dạng rìu
-                set {zb2.held} to iron axe of sharpness 1
-                if {zb2.explosion} = 0:
-                    set {zb2.explosion} to 0 + {zb2.count0} + 3
-                create an explosion of force {zb2.explosion} at {zb2}
-                set {zb2.explosion} to 0
-                set {zb2.cooldownform} to min(200, {zb2.count0} * 20 + 40)
+                set {boss::zb2}'s off hand to air
+                set {boss::zb2::willcheck} to true
+                set ai of {boss::zb2} to true
+                apply infinite speed potion of tier 2 to {boss::zb2}
+                set {boss::zb2::mine} to 5
+                set {boss::zb2::form} to 2
+                set {boss::zb2::held} to iron axe of sharpness 1
+                if {boss::zb2::explosion} = 0:
+                    set {boss::zb2::explosion} to 0 + {boss::zb2::count0} + 3
+                create an explosion of force {boss::zb2::explosion} at {boss::zb2}
+                set {boss::zb2::explosion} to 0
+                set {boss::zb2::cooldownform} to min(200, {boss::zb2::count0} * 20 + 40)
                 zb2_check()
                 zb2_cooldown_reset(5)
                 broadcast "&2&lZombie Boss II &ctiến vào trạng thái cuồng nộ, mau chạy nhanh còn kịp!"
-        if {zb2.form} = 2:
-            add -1 to {zb2.cooldown1}
-            add -1 to {zb2.cooldown2}
-            add -1 to {zb2.cooldown3}
-            set {zb2.goup} to 0
-        else if {zb2.form} = 1:
-            add -1 to {zb2.cooldown_eat}
-            if {zb2.goup} >= 8:
-                zb2_go_up()
-                set {zb2.goup} to 0
-            if {zb2.bottomstyle} is false:
-                add -1 to {zb2.cooldownform}
-                if {zb2.topstyle} is false:
-                    add -1 to {zb2.cooldownform}
-            else:
-                add 1 to {zb2.cooldownform}
-            if {zb2.cooldown_eat} <= 0:
-                loop all players:
-                    if distance between loop-player and {zb2} < 10:
-                        stop
-                set {zb2.cooldown_eat} to 2
-                zb2_eat({zb2.food})
-
-on target:
-    if entity has the scoreboard tag "zb2":
-        cancel event
-
         
+        if {boss::zb2::form} = 2:
+            add -1 to {boss::zb2::cooldown1}
+            add -1 to {boss::zb2::cooldown2}
+            add -1 to {boss::zb2::cooldown3}
+            set {boss::zb2::goup} to 0
+        else if {boss::zb2::form} = 1:
+            add -1 to {boss::zb2::cooldown_eat}
+            if {boss::zb2::goup} >= 8:
+                zb2_go_up()
+                set {boss::zb2::goup} to 0
+            
+            if {boss::zb2::bottomstyle} is false:
+                add -1 to {boss::zb2::cooldownform}
+                if {boss::zb2::topstyle} is false:
+                    add -1 to {boss::zb2::cooldownform}
+            else:
+                add 1 to {boss::zb2::cooldownform}
+                
+            if {boss::zb2::cooldown_eat} <= 0:
+                loop all players:
+                    if distance between loop-player and {boss::zb2} < 10:
+                        stop
+                set {boss::zb2::cooldown_eat} to 2
+                zb2_eat({boss::zb2::food})
+
 on death of zombie:
     if victim has the scoreboard tag "zb2":
-        broadcast "&a%attacker% đã đánh bại &2&lZombie Boss II&a!"
-
-        execute console command "forceload remove %{zb2.x}-33% %{zb2.z}-33% %{zb2.x}+33% %{zb2.z}+33%"
-        execute console command "/scoreboard players remove count_zb2 count_boss 1"
-        set {zb2.is.boss} to false
-        delete {zb2}
-        delete bossbar named "zb2-bar"
-
+        broadcast formatted {@msg_death}
+        Boss_Cleanup("zb2")
         drop_loot(location of victim)
 
 on vehicle enter:
     if event-entity has the scoreboard tag "zb2":
-        if {zb2.form} > 0:
+        if {boss::zb2::form} > 0:
             delete event-vehicle
-            make {zb2} swing main hand
+            make {boss::zb2} swing main hand
         cancel event
 
 on damage of player:
     if attacker has the scoreboard tag "zb2":
-        execute console command "/scoreboard players set count_zb2 idle_time 0"
-        if {zb2.form} = 1:
+        set {boss::zb2::idle_time} to 0
+        if {boss::zb2::form} = 1:
             if victim is defending:
                 chance of 25%:
                     set {_held} to attacker's held item
@@ -877,55 +867,45 @@ on damage of player:
                     set attacker's held item to {_held}
 
 on death of player:
-    if victim is {zb2.current.target}:
+    if victim is {boss::zb2::current.target}:
         wait 2 second
         zb2_check_target()
-    if the distance between victim and {zb2} < 40:
+    if distance between victim and {boss::zb2} < 40:
         broadcast "&2&lZombie Boss II &chấp thụ sinh lực của kẻ ngã xuống ở gần đấy!"
-        add 1 to {zb2.soul}
-        if {zb2.soul} = 10:
+        add 1 to {boss::zb2::soul}
+        if {boss::zb2::soul} = 10:
             broadcast "&2&lZombie Boss II &ecường hóa khả năng chống chịu của hắn!"
-            apply infinite resistance potion of tier 1 to {zb2}
-        else if {zb2.soul} = 20:
+            apply infinite resistance potion of tier 1 to {boss::zb2}
+        else if {boss::zb2::soul} = 20:
             broadcast "&2&lZombie Boss II &etiếp tục cường hóa khả năng chống chịu của hắn!"
-            apply infinite resistance potion of tier 2 to {zb2}
-        else if {zb2.soul} = 25:
+            apply infinite resistance potion of tier 2 to {boss::zb2}
+        else if {boss::zb2::soul} = 25:
             broadcast "&2&lZombie Boss II &eđổi món ăn của hắn qua &ltáo vàng&e!"
-            set {zb2.food} to true
-        else if {zb2.soul} = 30:
+            set {boss::zb2::food} to true
+        else if {boss::zb2::soul} = 30:
             broadcast "&2&lZombie Boss II &ecường hóa khả năng tấn công của hắn!"
-            apply infinite strength potion of tier 1 to {zb2}
-        else if {zb2.soul} = 35:
+            apply infinite strength potion of tier 1 to {boss::zb2}
+        else if {boss::zb2::soul} = 35:
             broadcast "&2&lZombie Boss II &etiếp tục cường hóa khả năng chống chịu của hắn!"
-            apply infinite resistance potion of tier 3 to {zb2}
-        else if {zb2.soul} = 40:
+            apply infinite resistance potion of tier 3 to {boss::zb2}
+        else if {boss::zb2::soul} = 40:
             broadcast "&2&lZombie Boss II &etiếp tục cường hóa khả năng tấn công của hắn!"
-            apply infinite strength potion of tier 2 to {zb2}
-        else if {zb2.soul} = 45:
+            apply infinite strength potion of tier 2 to {boss::zb2}
+        else if {boss::zb2::soul} = 45:
             broadcast "&2&lZombie Boss II &etiếp tục cường hóa khả năng chống chịu của hắn!"
-            apply infinite resistance potion of tier 4 to {zb2}
-        else if {zb2.soul} >= 50:
-            loop all zombies:
-                if loop-entity has the scoreboard tag "zb2":
-                    delete loop-entity
-                    broadcast "&2&lZombie Boss II &cđã trở nên quá mạnh và hắn cần tìm kiếm nơi khác để thị uy!"
-            
-                    execute console command "forceload remove %{zb2.x}-33% %{zb2.z}-33% %{zb2.x}+33% %{zb2.z}+33%"
-                    execute console command "/scoreboard players remove count_zb2 count_boss 1"
-                    set {zb2.is.boss} to false
-                    delete bossbar named "zb2-bar"
-                    delete {zb2}
+            apply infinite resistance potion of tier 4 to {boss::zb2}
+        else if {boss::zb2::soul} >= 50:
+            broadcast "&2&lZombie Boss II &cđã trở nên quá mạnh và hắn cần tìm kiếm nơi khác để thị uy!"
+            Boss_Cleanup("zb2")
+    
     wait 1 second
-    if {zb2.cooldown_eat} <= 0:
+    if {boss::zb2::cooldown_eat} <= 0:
         loop all players:
-            if distance between loop-player and {zb2} < 12:
+            if distance between loop-player and {boss::zb2} < 12:
                 stop
-        zb2_eat({zb2.food})
+        zb2_eat({boss::zb2::food})
 
 on damage of creeper:
     if victim has the scoreboard tag "invincible":
         if attacker is not a player:
             cancel event
-
-
-            
