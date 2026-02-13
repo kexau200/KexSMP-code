@@ -20,7 +20,6 @@ options:
     msg_idle_despawn: "&2&lCreepeer boss I &acảm thấy quá chán, hắn tự biến mất khỏi thế giới!"
     msg_rampage: "&2&lCreepeer boss I &ađã nổ được kha khá, hắn hết sạch thuốc nổ và trốn mất khỏi thế giới!"
     msg_death: "&a%attacker% đã đánh bại &2&lCreepeer boss I&a!"
-    # msg_spawn đã được bỏ theo yêu cầu
 
 # 1. CẤU HÌNH SPAWN & KHỞI TẠO
 on spawn of creeper:
