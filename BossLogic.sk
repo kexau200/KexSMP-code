@@ -2,6 +2,7 @@ function Boss_Init(entity: entity, id: string, name: string, hp: number, barColo
     set scoreboard tags of {_entity} to "boss"
     set {boss::%{_id}%} to {_entity}
     set {boss::%{_id}%::uuid} to uuid of {_entity}
+    set {boss::%{_id}%::name} to {_name}
     
     # Thêm vào danh sách active để chạy loop update bar
     if {active_bosses::*} does not contain {_id}:
@@ -19,7 +20,7 @@ function Boss_Init(entity: entity, id: string, name: string, hp: number, barColo
     # --- Setup BossBar ---
     set {_barID} to "bossbar.%{_id}%"
     # Tạo bossbar với ID tương ứng
-    set {boss::%{_id}%::bar} to bossbar named {_barID} with title formatted {_name} with color {_barColor} with style segmented 10 with progress 100
+    set {boss::%{_id}%::bar} to bossbar named {_barID} with title formatted {boss::%{_id}%::name} with color {_barColor} with style segmented 10 with progress 100
 
     add all players to {boss::%{_id}%::bar}
 
@@ -69,6 +70,10 @@ every 1 second:
         set {_entity} to {boss::%{_id}%}
         
         if {_entity} is alive:
+            set {_x} to round(x-coord of {_entity})
+            set {_z} to round(z-coord of {_entity})
+            set bar title of {boss::%{_id}%::bar} to formatted "%{boss::%{_id}%::name}% &e[ %{_x}%, %{_z}%]"
+            
             ForceLoadRemove({_entity}, 33) 
             ForceLoadAdd({_entity}, 16)
             
