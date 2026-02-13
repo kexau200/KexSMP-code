@@ -5,12 +5,11 @@ options:
     boss_color: dark green
     idle_heal_time: 30
     idle_despawn_time: 300
-    rampage_kills: 25
+    rampage_kills: 100
     msg_idle_heal: "&2&lZombie Boss II &acảm thấy quá chán, hắn tự hồi đầy máu cho bản thân!"
     msg_idle_despawn: "&2&lZombie Boss II &acảm thấy quá chán, hắn tự biến mất khỏi thế giới!"
     msg_rampage: "&2&lZombie Boss II &ađã tiêu diệt quá nhiều kẻ địch, hắn cảm thấy nhàm chán và bỏ đi!"
     msg_death: "&a%attacker% đã đánh bại &2&lZombie Boss II&a!"
-    msg_spawn: "&cAi đó đã triệu hồi &2&lZombie Boss II&c!"
 
 on spawn of zombie:
     if entity has the scoreboard tag "zb2":
@@ -58,11 +57,9 @@ on spawn of zombie:
             set {boss::zb2::cooldown_eat} to 10
 
             delete {boss::zb2::current.target}
-            broadcast formatted {@msg_spawn}
 
             set entity's max health to 200
             set entity's health to 200
-            set entity's scale attribute to 1.4
 
             equip entity with unbreakable iron helmet
             equip entity with unbreakable iron chestplate
@@ -339,16 +336,13 @@ every 1 tick:
                                 set {boss::zb2::airjump} to 5
                             else:
                                 add 3 to {boss::zb2::airjump}
-                                if {boss::zb2::airjump} >= 5:
-                                    set {boss::zb2::cooldown2} to 25
-                                    jump_to_target({boss::zb2}, {_hookvictim}, 1.5, 0.2, 3, 3)
-                                else:
-                                    zb2_hook({_hookvictim})
-                                    add 1 to {boss::zb2::airjump}
-                                    set {boss::zb2::cooldown2} to 30
+                        if {boss::zb2::airjump} >= 5:
+                            set {boss::zb2::cooldown2} to 25
+                            jump_to_target({boss::zb2}, {_hookvictim}, 1.5, 0.2, 3, 3)
                         else:
-                            zb2_eat({boss::zb2::food})
-                            set {boss::zb2::cooldown2} to 8
+                            zb2_hook({_hookvictim})
+                            add 1 to {boss::zb2::airjump}
+                            set {boss::zb2::cooldown2} to 30
                         zb2_cooldown_reset(5)
                     else:
                         zb2_eat({boss::zb2::food})
@@ -679,10 +673,6 @@ function zb2_hook(victim: entity):
         set velocity of {_victim} to vector(0.5,0,0.5)
         push {_victim} up with speed max(2 - y of {_v} * 0.1, 0.5)
         set {_new} to location of {_victim}
-        
-    set {_old} to location of {_victim}
-    add -1 to y-coord of {_old}
-
     set {_tick} to 0
     while y-coord of {_new} - y-coord of {_old} > 0.02:
         set {_old} to {_new}
@@ -840,6 +830,10 @@ every 20 tick:
                 set {boss::zb2::cooldown_eat} to 2
                 zb2_eat({boss::zb2::food})
 
+on target:
+    if entity has the scoreboard tag "zb2":
+        cancel event
+
 on death of zombie:
     if victim has the scoreboard tag "zb2":
         broadcast formatted {@msg_death}
@@ -897,6 +891,7 @@ on death of player:
         else if {boss::zb2::soul} >= 50:
             broadcast "&2&lZombie Boss II &cđã trở nên quá mạnh và hắn cần tìm kiếm nơi khác để thị uy!"
             Boss_Cleanup("zb2")
+            deleteEntity({boss::zb2})
     
     wait 1 second
     if {boss::zb2::cooldown_eat} <= 0:
