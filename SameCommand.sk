@@ -1,8 +1,9 @@
+# 1. Function DRY
 function dry(doer: entity, radius: number):
-    if {_doer} is {zb2}:
-        if {zb2.is.doing} is true:
+    if {_doer} is {boss::zb2}:
+        if {boss::zb2::is.doing} is true:
             stop
-        set {zb2.is.doing} to true
+        set {boss::zb2::is.doing} to true
     set {_block.corner1} to block at {_doer}
     add {_radius} to x-coord of {_block.corner1}
     add {_radius}+1 to y-coord of {_block.corner1}
@@ -18,24 +19,26 @@ function dry(doer: entity, radius: number):
         else if block data tag "waterlogged" of loop-block is true:
             set block data tag "waterlogged" of loop-block to false
     wait 2 tick
-    if {_doer} is {zb2}:
-        set {zb2.is.doing} to false
+    if {_doer} is {boss::zb2}:
+        set {boss::zb2::is.doing} to false
 
+# 2. Function BUILD_BELOW
 function build_below(boss: entity, block: any named thing):
     set {_loc} to location of {_boss}
     if block below {_loc} is not solid:
         if block below {_loc} is not tagged with tag "minecraft:replaceable":
             break block below {_loc} naturally
         set block below {_loc} to {_block}
-        if {_boss} is {zb2}:
+        if {_boss} is {boss::zb2}:
             set {_boss}'s main hand to {_block}
         make {_boss} swing main hand
 
+# 3. Function GET_TO_TARGET
 function get_to_target(chaser: entity, block: any named thing, time: number, digdown: boolean):
     if {_chaser}'s target is not set:
         stop
-    if {_chaser} is {zb2}:
-        if {zb2.is.doing} is true:
+    if {_chaser} is {boss::zb2}:
+        if {boss::zb2::is.doing} is true:
             stop
     else:
         set {_held} to {_chaser}'s held item
@@ -70,8 +73,8 @@ function get_to_target(chaser: entity, block: any named thing, time: number, dig
             if block below {_loc} is not tagged with tag "minecraft:replaceable":
                 break block below {_loc} naturally
             set block below {_chaser.loc} to {_block}
-            if {_chaser} is {zb2}:
-                set {zb2.can.target} to false
+            if {_chaser} is {boss::zb2}:
+                set {boss::zb2::can.target} to false
             set {_built} to true
         else if block at {_chaser.loc} is solid:
             iron_break_as({_chaser}, block at {_chaser.loc}, {_time})
@@ -88,8 +91,8 @@ function get_to_target(chaser: entity, block: any named thing, time: number, dig
             if block below {_loc} is not tagged with tag "minecraft:replaceable":
                 break block below {_loc} naturally
             set block below {_chaser.loc} to {_block}
-            if {_chaser} is {zb2}:
-                set {zb2.can.target} to false
+            if {_chaser} is {boss::zb2}:
+                set {boss::zb2::can.target} to false
             set {_built} to true
         else if block at {_chaser.loc} is solid:
             iron_break_as({_chaser}, block at {_chaser.loc}, {_time})
@@ -97,18 +100,19 @@ function get_to_target(chaser: entity, block: any named thing, time: number, dig
     if {_built} is true:
         set {_chaser}'s main hand to {_block}
         make {_chaser} swing main hand
-        if {_chaser} is {zb2}:
-            set {zb2.is.doing} to true
+        if {_chaser} is {boss::zb2}:
+            set {boss::zb2::is.doing} to true
             reset target of {_chaser}
-            set {zb2.main.dirt.time} to 5
+            set {boss::zb2::main.dirt.time} to 5
             wait 1 tick
-            set {zb2.can.target} to true
-            set {_chaser}'s target to {zb2.current.target}
+            set {boss::zb2::can.target} to true
+            set {_chaser}'s target to {boss::zb2::current.target}
         else:
             wait 5 tick
             set {_chaser}'s held item to {_held}
-    set {zb2.is.doing} to false
+    set {boss::zb2::is.doing} to false
 
+# 4. Function IRON_BREAK_AS
 function iron_break_as(doer: entity,block: block ,speed: integer):
     if {_block} is bedrock:
         stop
@@ -116,10 +120,10 @@ function iron_break_as(doer: entity,block: block ,speed: integer):
         stop
     if {_block} is tagged with tag "minecraft:liquid":
         stop
-    if {_doer} is {zb2}:
-        if {zb2.is.doing} is true:
+    if {_doer} is {boss::zb2}:
+        if {boss::zb2::is.doing} is true:
             stop
-        set {zb2.is.doing} to true
+        set {boss::zb2::is.doing} to true
     set {_held} to {_doer}'s held item
     make {_doer} swing main hand
     set velocity of {_doer} to vector(0,0,0)
@@ -148,8 +152,8 @@ function iron_break_as(doer: entity,block: block ,speed: integer):
         set {_time} to 0.5
     if {_block} is tagged with tag "minecraft:needs_diamond_tool":
         set {_time} to {_time}*5
-    if {_doer} is {zb2}:
-        set {zb2.main.dirt.time} to {_time} + 5
+    if {_doer} is {boss::zb2}:
+        set {boss::zb2::main.dirt.time} to {_time} + 5
     while {_time} > 0:
         set {_time} to {_time} - 1
         wait 1 tick
@@ -160,15 +164,16 @@ function iron_break_as(doer: entity,block: block ,speed: integer):
         break {_block}
     set {_doer}'s held item to {_held}
     set target of {_doer} to {_target}
-    if {_doer} is {zb2}:
-        set {zb2.is.doing} to false
+    if {_doer} is {boss::zb2}:
+        set {boss::zb2::is.doing} to false
 
+# 5. Function JUMP_BUILD
 function jump_build(jumper: entity, block: any named thing, time: number):
     if target of {_jumper} is set:
         set {_target} to target of {_jumper}
-    if {_jumper} is {zb2}:
-        reset target of {zb2}
-        set {zb2.jump.cooldown} to 6
+    if {_jumper} is {boss::zb2}:
+        reset target of {boss::zb2}
+        set {boss::zb2::jump.cooldown} to 6
     set {_jumper.loc} to location of block at {_jumper}
     if y-coord of {_jumper.loc} - y-coord of {_jumper} <= 0.4:
         set y-coord of {_jumper.loc} to y-coord of {_jumper.loc} + 1
@@ -178,23 +183,24 @@ function jump_build(jumper: entity, block: any named thing, time: number):
         stop
     set velocity of {_jumper} to vector(0, 0, 0)
     push {_jumper} up with speed 0.5
-    set {zb2.main.dirt.time} to 5
-    set {zb2.is.doing} to true
+    set {boss::zb2::main.dirt.time} to 5
+    set {boss::zb2::is.doing} to true
     wait 3 tick
-    if {_jumper} is {zb2}:                     
-        set {zb2.is.doing} to false
+    if {_jumper} is {boss::zb2}:                     
+        set {boss::zb2::is.doing} to false
     else:
         wait 2 tick
     set target of {_jumper} to {_target}
     build_below({_jumper}, {_block})
 
+# 6. Function JUMP_TO_TARGET
 function jump_to_target(jumper: entity, loc: location, velUp: number, mulH: number, velDown: number, force: number):
     set {_loc} to location of block at {_loc}
-    if {_jumper} is {zb2}:
-        set {zb2.willcheck} to false
-        set {zb2.bottomstyle} to false
-        set {zb2.is.doing} to true
-        set {zb2.willcheck} to false
+    if {_jumper} is {boss::zb2}:
+        set {boss::zb2::willcheck} to false
+        set {boss::zb2::bottomstyle} to false
+        set {boss::zb2::is.doing} to true
+        set {boss::zb2::willcheck} to false
     set {_jumper.loc} to location of {_jumper}
     set y-coord of {_jumper.loc} to y-coord of {_loc}
     set {_vecbase} to vector between {_jumper.loc} and {_loc}
@@ -203,9 +209,6 @@ function jump_to_target(jumper: entity, loc: location, velUp: number, mulH: numb
     add 3 to y-coord of {_loc3}
     set {_traveldis} to distance between {_loc2} and {_jumper.loc}
     set {_new} to location of {_jumper}
-    #loop blocks within {_loc2} and {_loc3}:
-    #    if loop-block is solid:
-    #        stop
     set {_tick} to 100
     push {_jumper} up with speed {_velUp}
     while {_tick} > 0:
@@ -247,10 +250,10 @@ function jump_to_target(jumper: entity, loc: location, velUp: number, mulH: numb
         add 1 to {_tick}
         wait 1 tick
     create a safe explosion of force {_force} at {_jumper}
-    if {_jumper} is {zb2}:
-        set {zb2.is.doing} to false
-        set {zb2.willcheck} to true
-        if {zb2.airjump} >= 5:
+    if {_jumper} is {boss::zb2}:
+        set {boss::zb2::is.doing} to false
+        set {boss::zb2::willcheck} to true
+        if {boss::zb2::airjump} >= 5:
             zb2_go_down()
 
 command /strike:
