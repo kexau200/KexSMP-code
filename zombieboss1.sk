@@ -1,45 +1,46 @@
 # ==============================================================================
 # ZOMBIE BOSS I - FULL CODE (REFACTORED)
 # ==============================================================================
+on spawn:
+    chance of 50%:
+        add "special" to scoreboard tags of entity
 
 # 1. CẤU HÌNH SPAWN & KHỞI TẠO
 on damage of zombie by player:
-    if score of "count_zb1" for objective with id "count_boss" <= 0:   
+    if score of "count_zb1" for objective with id "count_boss" <= 0:
         if victim has the scoreboard tag "special":
-            if victim doesn't have scoreboard tag "custom_boss":
-                
-                # --- BƯỚC 1: KHỞI TẠO CƠ BẢN ---
-                # Entity, ID, Tên hiển thị, Máu, Màu BossBar
-                Boss_Init(victim, "zb1", "&2Zombie Boss I", 50, dark green)
+            # --- BƯỚC 1: KHỞI TẠO CƠ BẢN ---
+            # Entity, ID, Tên hiển thị, Máu, Màu BossBar
+            Boss_Init(victim, "zb1", "&2Zombie Boss I", 50, dark green)
 
-                # --- BƯỚC 2: CÀI ĐẶT GIỚI HẠN ---
-                # Idle1 (Hồi máu): 30s | Idle2 (Biến mất): 300s | Rampage: 15 kills
-                Boss_SetLimits("zb1", 30, 300, 15)
+            # --- BƯỚC 2: CÀI ĐẶT GIỚI HẠN ---
+            # Idle1 (Hồi máu): 30s | Idle2 (Biến mất): 300s | Rampage: 15 kills
+            Boss_SetLimits("zb1", 30, 300, 15)
 
-                # --- BƯỚC 3: CÀI ĐẶT CÂU THOẠI ---
-                set {_msgIdle1} to "&2Zombie Boss I &acảm thấy quá chán, hắn tự hồi đầy máu cho bản thân!"
-                set {_msgIdle2} to "&2Zombie Boss I &acảm thấy quá chán, hắn tự biến mất khỏi thế giới!"
-                set {_msgRampage} to "&2Zombie Boss I &ađã giết được tổng cộng 15 mạng, hắn cảm thấy game quá dễ và tự biến mất khỏi thế giới!"
-                
-                Boss_SetMessages("zb1", {_msgIdle1}, {_msgIdle2}, {_msgRampage})
+            # --- BƯỚC 3: CÀI ĐẶT CÂU THOẠI ---
+            set {_msgIdle1} to "&2Zombie Boss I &acảm thấy quá chán, hắn tự hồi đầy máu cho bản thân!"
+            set {_msgIdle2} to "&2Zombie Boss I &acảm thấy quá chán, hắn tự biến mất khỏi thế giới!"
+            set {_msgRampage} to "&2Zombie Boss I &ađã giết được tổng cộng 15 mạng, hắn cảm thấy game quá dễ và tự biến mất khỏi thế giới!"
+            
+            Boss_SetMessages("zb1", {_msgIdle1}, {_msgIdle2}, {_msgRampage})
 
-                # --- HIỆU ỨNG SPAWN CŨ ---
-                make victim adult
-                make 50 of flame at victim
-                play sound "entity.ender_dragon.growl" with volume 2 at the victim
-                strike lightning at victim
+            # --- HIỆU ỨNG SPAWN CŨ ---
+            make victim adult
+            make 50 of flame at victim
+            play sound "entity.ender_dragon.growl" with volume 2 at the victim
+            strike lightning at victim
 
-                # --- THIẾT LẬP BIẾN SKILL RIÊNG ---
-                set {boss::zb1::cooldown1} to a random integer between 10 and 15
-                set {boss::zb1::cooldown2} to a random integer between 10 and 15
-                set {boss::zb1::br} to true
-  
-                # --- TRANG BỊ ---
-                equip victim with chainmail helmet
-                equip victim with chainmail chestplate
-                equip victim with chainmail leggings
-                equip victim with chainmail boots
-                set victim's held item to stone sword
+            # --- THIẾT LẬP BIẾN SKILL RIÊNG ---
+            set {boss::zb1::cooldown1} to a random integer between 10 and 15
+            set {boss::zb1::cooldown2} to a random integer between 10 and 15
+            set {boss::zb1::br} to true
+
+            # --- TRANG BỊ ---
+            equip victim with chainmail helmet
+            equip victim with chainmail chestplate
+            equip victim with chainmail leggings
+            equip victim with chainmail boots
+            set victim's held item to stone sword
 
 # 2. VÒNG LẶP LOGIC (SKILL & AI)
 every 20 tick:
@@ -95,7 +96,8 @@ every 20 tick:
 
 # 3. XỬ LÝ SÁT THƯƠNG GÂY RA (SKILL EFFECT)
 on damage of zombie:
-    if {boss::zb1::do.skill1} is true:   
+    if {boss::zb1::do.skill1} is true:
+        set {boss::zb1::idle_time} to 0
         if victim has scoreboard tag "zb1": # Kiểm tra bằng tag ID
             if event-damage cause is fall:
                 set {boss::zb1::do.skill1} to false
@@ -119,6 +121,7 @@ on damage of zombie:
         if attacker is not a player:
             cancel event # Miễn nhiễm sát thương mob/môi trường
         else:
+            set {boss::zb1::idle_time} to 0
             # Phản đòn: Dịch chuyển người chơi
             chance of 50%:
                 if distance between victim and attacker <= 4:
