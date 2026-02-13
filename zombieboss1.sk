@@ -4,11 +4,7 @@
 
 # 1. CẤU HÌNH SPAWN & KHỞI TẠO
 on damage of zombie by player:
-    # Logic check số lượng boss của server cũ
-    execute console command "/execute if score count_zb1 count_boss matches ..0 run truezb1"
-    execute console command "/execute if score count_zb1 count_boss matches 1.. run falsezb1"
-    
-    if {zb1.canspawn} is true:    
+    if score of "count_zb1" for objective with id "count_boss" <= 0:   
         if victim has the scoreboard tag "special":
             if victim doesn't have scoreboard tag "custom_boss":
                 
@@ -189,17 +185,3 @@ on zombie transforming:
 on vehicle enter:
     if event-entity has scoreboard tag "zb1":
         cancel event
-
-# --- CÁC COMMAND ADMIN BẬT TẮT SPAWN ---
-# Giữ lại để bạn điều khiển việc cho phép boss ra hay không
-command /falsezb1:
-    permission: op
-    trigger:
-        set {zb1.canspawn} to false
-        send "&cĐã tắt khả năng spawn Zombie Boss I"
-
-command /truezb1:
-    permission: op
-    trigger:
-        set {zb1.canspawn} to true
-        send "&aĐã bật khả năng spawn Zombie Boss I"
