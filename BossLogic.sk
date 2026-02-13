@@ -40,7 +40,7 @@ function Boss_ReduceCooldown(id: string, cd.index: integer, multiplier: number =
         remove {_multiplier} from {boss::%{_id}%::cooldown%{_cd.index}%}
 
 function Boss_Cleanup(id: string):
-    delete bossbar {boss::%{_id}%::bar}
+    delete bossbar named "bossbar.%{_id}%"
     remove {_id} from {active_bosses::*}
     delete {boss::%{_id}%::*}
     ForceLoadRemove({boss::%{_id}%}, 33)
@@ -88,7 +88,7 @@ every 1 second:
                     if {boss::%{_id}%::cfg::msg_idle2} is set:
                         broadcast {boss::%{_id}%::cfg::msg_idle2}
                     Boss_Cleanup({_id})
-                    deleteEntity{_entity}
+                    deleteEntity({_entity})
             
             # --- Xử lý Rampage ---
             if {boss::%{_id}%::cfg::rampage} is set:
@@ -96,7 +96,7 @@ every 1 second:
                     if {boss::%{_id}%::cfg::msg_rampage} is set:
                         broadcast {boss::%{_id}%::cfg::msg_rampage}
                     Boss_Cleanup({_id})
-                    deleteEntity{_entity}
+                    deleteEntity({_entity})
         else:
             Boss_Cleanup({_id})
 
