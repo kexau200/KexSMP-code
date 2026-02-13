@@ -1,54 +1,70 @@
-# 1. SPAWN LOGIC
+# ==============================================================================
+# ZOMBIE BOSS I - FULL CODE (REFACTORED)
+# ==============================================================================
+
+# 1. CẤU HÌNH SPAWN & KHỞI TẠO
 on damage of zombie by player:
+    # Logic check số lượng boss của server cũ
     execute console command "/execute if score count_zb1 count_boss matches ..0 run truezb1"
     execute console command "/execute if score count_zb1 count_boss matches 1.. run falsezb1"
     
     if {zb1.canspawn} is true:    
         if victim has the scoreboard tag "special":
-            # --- Thay thế đoạn khởi tạo cũ bằng Function ---
-            Boss_Init(victim, "zb1", "&2Zombie Boss I", 50, dark green)
+            if victim doesn't have scoreboard tag "custom_boss":
+                
+                # --- BƯỚC 1: KHỞI TẠO CƠ BẢN ---
+                # Entity, ID, Tên hiển thị, Máu, Màu BossBar
+                Boss_Init(victim, "zb1", "&2Zombie Boss I", 50, dark green)
 
-            # --- Logic spawn effect cũ ---
-            make victim adult
-            make 50 of flame at victim
-            play sound "entity.ender_dragon.growl" with volume 2 at the victim
-            strike lightning at victim
+                # --- BƯỚC 2: CÀI ĐẶT GIỚI HẠN ---
+                # Idle1 (Hồi máu): 30s | Idle2 (Biến mất): 300s | Rampage: 15 kills
+                Boss_SetLimits("zb1", 30, 300, 15)
 
-            # --- Set cooldown theo format biến mới ---
-            set {boss::zb1::cooldown1} to a random integer between 10 and 15
-            set {boss::zb1::cooldown2} to a random integer between 10 and 15
-            set {boss::zb1::br} to true
+                # --- BƯỚC 3: CÀI ĐẶT CÂU THOẠI ---
+                set {_msgIdle1} to "&2Zombie Boss I &acảm thấy quá chán, hắn tự hồi đầy máu cho bản thân!"
+                set {_msgIdle2} to "&2Zombie Boss I &acảm thấy quá chán, hắn tự biến mất khỏi thế giới!"
+                set {_msgRampage} to "&2Zombie Boss I &ađã giết được tổng cộng 15 mạng, hắn cảm thấy game quá dễ và tự biến mất khỏi thế giới!"
+                
+                Boss_SetMessages("zb1", {_msgIdle1}, {_msgIdle2}, {_msgRampage})
 
-            execute console command "/scoreboard players add count_zb1 count_boss 1"
-            execute console command "/scoreboard players set count_zb1 boss_rampage 0"
-            execute console command "/scoreboard players set count_zb1 idle_time 0"
-            
-            # --- Equipment ---
-            equip victim with chainmail helmet
-            equip victim with chainmail chestplate
-            equip victim with chainmail leggings
-            equip victim with chainmail boots
-            set victim's held item to stone sword
+                # --- HIỆU ỨNG SPAWN CŨ ---
+                make victim adult
+                make 50 of flame at victim
+                play sound "entity.ender_dragon.growl" with volume 2 at the victim
+                strike lightning at victim
 
-# 2. LOGIC LOOP & SKILL (Thay thế every tick cũ)
+                # --- THIẾT LẬP BIẾN SKILL RIÊNG ---
+                set {boss::zb1::cooldown1} to a random integer between 10 and 15
+                set {boss::zb1::cooldown2} to a random integer between 10 and 15
+                set {boss::zb1::br} to true
+
+                # --- CẬP NHẬT SCOREBOARD SERVER ---
+                execute console command "/scoreboard players add count_zb1 count_boss 1"
+                execute console command "/scoreboard players set count_zb1 boss_rampage 0"
+                execute console command "/scoreboard players set count_zb1 idle_time 0"
+                
+                # --- TRANG BỊ ---
+                equip victim with chainmail helmet
+                equip victim with chainmail chestplate
+                equip victim with chainmail leggings
+                equip victim with chainmail boots
+                set victim's held item to stone sword
+
+# 2. VÒNG LẶP LOGIC (SKILL & AI)
 every 20 tick:
-    # Kiểm tra nếu boss đang active (theo list của Core)
+    # Chỉ chạy khi Boss ZB1 đang tồn tại trong danh sách của Core
     if {active_bosses::*} contains "zb1":
         
-        # --- Logic idle cũ giữ nguyên ---
+        # Giữ lại logic load chunk của bạn
         execute console command "dochunkload"
-        execute console command "scoreboard players add count_zb1 idle_time 1"
-        execute console command "execute if score count_zb1 idle_time matches 30 run idle1zb1"
-        execute console command "execute if score count_zb1 idle_time matches 300.. run idle2zb1"
-        execute console command "execute if score count_zb1 boss_rampage matches 15.. run rampagezb1"
 
-        # --- Giảm Cooldown bằng Function ---
-        Boss_ReduceCooldown("zb1", 1, 1) # Giảm cooldown skill 1
-        Boss_ReduceCooldown("zb1", 2, 1) # Giảm cooldown skill 2
+        # --- GIẢM COOLDOWN ---
+        Boss_ReduceCooldown("zb1", 1, 1)
+        Boss_ReduceCooldown("zb1", 2, 1)
 
-        set {_zb1} to {boss::zb1} # Lấy entity từ biến core
+        set {_zb1} to {boss::zb1} # Lấy entity boss từ biến Core
 
-        # --- SKILL 1: Dậm chân (Smash) ---
+        # --- SKILL 1: DẬM CHÂN (SMASH) ---
         if {boss::zb1::cooldown1} <= 0:
             loop all players:
                 set {_zb1loc} to location of {_zb1}
@@ -66,7 +82,7 @@ every 20 tick:
                         set {_zb1}'s target to loop-player
                         stop loop
 
-        # --- SKILL 2: Cầu dịch chuyển (TP Ball) ---
+        # --- SKILL 2: CẦU DỊCH CHUYỂN (TP BALL) ---
         if {boss::zb1::cooldown2} <= 0:
             loop all players:
                 set {_zb1loc} to location of {_zb1}
@@ -79,7 +95,7 @@ every 20 tick:
                             set event-entity's custom name to "tpball"
                         set {boss::zb1::cooldown2} to a random integer between 10 and 15
 
-        # --- Logic Cuồng nộ (Enrage) ---
+        # --- TRẠNG THÁI CUỒNG NỘ (ENRAGE) ---
         if {_zb1}'s health <= 12.5:
             apply speed potion of tier 1 to {_zb1} for 3 seconds
             apply strength potion of tier 1 to {_zb1} for 3 seconds
@@ -89,33 +105,33 @@ every 20 tick:
         if {_zb1}'s health > 12.5:
             set {boss::zb1::br} to true
 
-# 3. SỰ KIỆN SÁT THƯƠNG (Skill 1 Effect)
+# 3. XỬ LÝ SÁT THƯƠNG GÂY RA (SKILL EFFECT)
 on damage of zombie:
     if {boss::zb1::do.skill1} is true:   
-        if victim has scoreboard tag "zb1": # Kiểm tra bằng tag thay vì tên
+        if victim has scoreboard tag "zb1": # Kiểm tra bằng tag ID
             if event-damage cause is fall:
                 set {boss::zb1::do.skill1} to false
                 set {boss::zb1::cooldown1} to a random integer between 10 and 15
                 
-                # Effect nổ
+                # Hiệu ứng nổ
                 set {_loc} to location of victim
                 make 200 of dust_plume at victim
                 play sound "item.mace.smash_ground_heavy" with volume 3 at victim
                 create an explosion of force 2 at the victim
 
-                # Damage người chơi
+                # Gây sát thương diện rộng
                 loop all players:
                     if distance between loop-player and {_loc} <= 7:
                         damage loop-player by 3
                         push loop-player up with speed 1
             
-# 4. NỘI TẠI & PHẢN ĐÒN
+# 4. XỬ LÝ SÁT THƯƠNG NHẬN VÀO (DEFENSE)
 on damage of zombie:
     if victim has scoreboard tag "zb1":
         if attacker is not a player:
-            cancel event # Miễn nhiễm sát thương gián tiếp
+            cancel event # Miễn nhiễm sát thương mob/môi trường
         else:
-            execute console command "/scoreboard players set count_zb1 idle_time 0"
+            # Phản đòn: Dịch chuyển người chơi
             chance of 50%:
                 if distance between victim and attacker <= 4:
                     set victim's target to attacker
@@ -123,27 +139,39 @@ on damage of zombie:
                         teleport the attacker to the victim
                         play sound "block.iron_trapdoor.close" with volume 3 at the victim
 
-# 5. XỬ LÝ CHẾT
+# 5. XỬ LÝ KHI GIẾT NGƯỜI CHƠI (RAMPAGE & HEAL)
+on death of player:
+    if attacker has scoreboard tag "zb1":
+        add 1 to {boss::zb1::rampage_count}
+        
+        # Hồi máu nếu boss yếu
+        if attacker's health <= 12.5:
+            heal attacker by 5
+            broadcast "&cZombie Boss I &avừa hấp thụ sinh lực của kẻ ngã xuống!"
+
+# 6. XỬ LÝ KHI BOSS CHẾT
 on death of zombie:
     if victim has scoreboard tag "zb1":
         broadcast "&a%attacker% đã đánh bại &cZombie Boss I&a!"
         
-        # --- Cleanup bằng Function ---
+        # --- DỌN DẸP BOSS ---
         Boss_Cleanup("zb1")
         
-        # --- Logic cũ ---
+        # Xóa các vùng forceload và scoreboard cũ
         execute console command "forceload remove %{zb1.x}-33% %{zb1.z}-33% %{zb1.x}+33% %{zb1.z}+33%"
         execute console command "/scoreboard players remove count_zb1 count_boss 1"
         
+        # Drop vật phẩm
         chance of 90%:
             drop 1 golden carrot
         else:
             drop 1 golden apple
 
-# 6. CÁC EVENT PHỤ (Giữ nguyên logic cũ, chỉ đổi check tag)
+# 7. CÁC SỰ KIỆN PHỤ KHÁC
 on projectile hit:
     if event-projectile's custom name is "tpball":
-        teleport victim to {boss::zb1} # Dùng biến boss::zb1 thay vì zb1
+        # Dùng biến {boss::zb1} thay vì {zb1}
+        teleport victim to {boss::zb1} 
         play sound "block.iron_trapdoor.close" with volume 3 at the victim
         set {boss::zb1}'s target to victim
 
@@ -162,25 +190,16 @@ on vehicle enter:
     if event-entity has scoreboard tag "zb1":
         cancel event
 
-# --- Commands Admin (Giữ nguyên nhưng gọi Cleanup mới) ---
-command /idle2zb1:
+# --- CÁC COMMAND ADMIN BẬT TẮT SPAWN ---
+# Giữ lại để bạn điều khiển việc cho phép boss ra hay không
+command /falsezb1:
     permission: op
     trigger:
-        loop all zombies:
-            if loop-entity has scoreboard tag "zb1":
-                delete loop-entity
-                broadcast "&cZombie Boss I &acảm thấy quá chán, hắn tự biến mất khỏi thế giới!"
-                Boss_Cleanup("zb1")
-                execute console command "forceload remove %{zb1.x}-33% %{zb1.z}-33% %{zb1.x}+33% %{zb1.z}+33%"
-                execute console command "/scoreboard players remove count_zb1 count_boss 1"
+        set {zb1.canspawn} to false
+        send "&cĐã tắt khả năng spawn Zombie Boss I"
 
-command /rampagezb1:
+command /truezb1:
     permission: op
     trigger:
-        loop all zombies:
-            if loop-entity has scoreboard tag "zb1":
-                delete loop-entity
-                broadcast "&cZombie Boss I &ađã giết được tổng cộng 15 mạng, hắn cảm thấy game quá dễ và tự biến mất khỏi thế giới!"
-                Boss_Cleanup("zb1")
-                execute console command "forceload remove %{zb1.x}-33% %{zb1.z}-33% %{zb1.x}+33% %{zb1.z}+33%"
-                execute console command "/scoreboard players remove count_zb1 count_boss 1"
+        set {zb1.canspawn} to true
+        send "&aĐã bật khả năng spawn Zombie Boss I"
