@@ -6,7 +6,7 @@ function Boss_Init(entity: entity, id: string, name: string, hp: number, barColo
     # Thêm vào danh sách active để chạy loop update bar
     if {active_bosses::*} does not contain {_id}:
         add {_id} to {active_bosses::*}
-
+        add 1 to score of "count_%{_id}%" for objective with id "count_boss"
     # --- Setup Entity Stats ---
     # Gán tag để nhận diện ngược lại từ Entity -> ID nếu cần
     add "boss" to scoreboard tags of {_entity}
@@ -43,6 +43,8 @@ function Boss_Cleanup(id: string):
     delete bossbar {boss::%{_id}%::bar}
     remove {_id} from {active_bosses::*}
     delete {boss::%{_id}%::*}
+    ForceLoadRemove({boss::%{_id}%}, 33)
+    set score of "count_%{_id}%" for objective with id "count_boss" to 0
 
 function deleteEntity(entity: entity):
     loop all entities:
@@ -67,6 +69,9 @@ every 1 second:
         set {_entity} to {boss::%{_id}%}
         
         if {_entity} is alive:
+            ForceLoadRemove({_entity}, 33) 
+            ForceLoadAdd({_entity}, 16)
+            
             # --- Xử lý Idle Time ---
             add 1 to {boss::%{_id}%::idle_time}
             
@@ -94,3 +99,33 @@ every 1 second:
                     deleteEntity{_entity}
         else:
             Boss_Cleanup({_id})
+
+function ForceLoadAdd(e: entity, r: integer):
+    if {_e} is set:
+        set {_loc} to location of {_e}
+        set {_x} to round(x-coord of {_loc})
+        set {_z} to round(z-coord of {_loc})
+        
+        set {_minX} to {_x} - {_r}
+        set {_minZ} to {_z} - {_r}
+        set {_maxX} to {_x} + {_r}
+        set {_maxZ} to {_z} + {_r}
+        
+        execute console command "forceload add %{_minX}% %{_minZ}% %{_maxX}% %{_maxZ}%"
+
+function ForceLoadRemove(e: entity, r: integer):
+    if {_e} is set:
+        set {_loc} to location of {_e}
+        set {_x} to round(x-coord of {_loc})
+        set {_z} to round(z-coord of {_loc})
+        
+        set {_minX} to {_x} - {_r}
+        set {_minZ} to {_z} - {_r}
+        set {_maxX} to {_x} + {_r}
+        set {_maxZ} to {_z} + {_r}
+        
+        execute console command "forceload remove %{_minX}% %{_minZ}% %{_maxX}% %{_maxZ}%"
+
+on vehicle enter:
+    if event-entity has scoreboard tag "boss":
+        cancel event
