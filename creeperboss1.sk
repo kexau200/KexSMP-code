@@ -1,95 +1,31 @@
-on server start:
-    set {cb1.is.boss} to false
-    
+# ==============================================================================
+# CREEPER BOSS I - REFACTORED (SYNCED WITH BOSSLOGIC)
+# ==============================================================================
+
+options:
+    # --- CẤU HÌNH CƠ BẢN ---
+    special_chance: 0.5            # 10% như cũ
+    id: "cb1"                       # ID dùng cho biến và tag
+    name: "&2&lCreepeer boss I"     # Tên hiển thị
+    boss_hp: 100                    # Máu tối đa
+    boss_color: green               # Màu thanh BossBar
+
+    # --- GIỚI HẠN & THỜI GIAN ---
+    idle_heal_time: 60              # Thời gian hồi máu khi idle (60s)
+    idle_despawn_time: 300          # Thời gian despawn khi idle (300s)
+    rampage_kills: 40               # Số kill kích hoạt rampage (40 kill)
+
+    # --- TIN NHẮN & THÔNG BÁO ---
+    msg_idle_heal: "&2&lCreepeer boss I &acảm thấy quá chán, hắn tự hồi đầy máu cho bản thân!"
+    msg_idle_despawn: "&2&lCreepeer boss I &acảm thấy quá chán, hắn tự biến mất khỏi thế giới!"
+    msg_rampage: "&2&lCreepeer boss I &ađã nổ được kha khá, hắn hết sạch thuốc nổ và trốn mất khỏi thế giới!"
+    msg_death: "&a%attacker% đã đánh bại &2&lCreepeer boss I&a!"
+    # msg_spawn đã được bỏ theo yêu cầu
+
+# 1. CẤU HÌNH SPAWN & KHỞI TẠO
 on spawn of creeper:
-    chance of 10%:
-        set event-entity's scoreboard tags to "special"
-
-on damage of creeper by player:
-    if victim has the scoreboard tag "special":
-        if the victim is not charged:
-            strike lightning at victim
-
-on damage of creeper:
-    if the damage cause is a lightning strike:
-        cancel event
-        if {cb1.do.skill2} is true:
-            if victim doesn't have the scoreboard tag "cb1":
-                add "cb1.hallu" to the scoreboard tags of victim
-    if victim has the scoreboard tag "cb1":
-        if attacker is not a player:
-            cancel event
-        else:
-            execute console command "/scoreboard players set count_cb1 idle_time 0"
-            if {cb1.do.skill2} is not true:
-                chance of 25%:
-                    apply resistance potion of tier 2 to victim for 2 seconds
-                    detonate victim
-            else:
-                loop all creepers:
-                    if loop-entity has the scoreboard tag "cb1.hallu":
-                        delete loop-entity
-                broadcast "&aAi đó đã đánh trúng &2&lCreepeer boss I&c!"
-                set ai of {cb1} to true
-                set {cb1.do.skill2} to false
-                set {cb1.using.skill} to false
-            if damage cause is entity explosion:
-                cancel event
-                heal {cb1} by 5 hearts
-                broadcast "&2&lCreepeer boss I &chấp thụ vụ nổ lên hắn và hồi máu!"
-
-    if victim has the scoreboard tag "cb1.hallu":
-        if attacker is not a player:
-            cancel event
-        else:
-            delete victim
-            heal {cb1} by 5 hearts
-            broadcast "&cAi đó đã bị lừa bởi ảo ảnh và hồi &a10 &cmáu cho &2&lCreepeer boss I&c!"
-            execute console command "/scoreboard players set count_cb1 idle_time 0"
-
-function death_cb1():
-    execute console command "forceload remove %{cb1.x}-33% %{cb1.z}-33% %{cb1.x}+33% %{cb1.z}+33%"
-    execute console command "/scoreboard players remove count_cb1 count_boss 1"
-    set {cb1.is.boss} to false
-    delete {cb1}
-    delete bossbar named "cb1-bar"
-    delete {pl.can.stop}
-
-command /truecb1:
-    permission: op
-    trigger:
-        set {cb1.canspawn} to true
-
-command /falsecb1:
-    permission: op
-    trigger:
-        set {cb1.canspawn} to false
-
-command /idle1cb1:
-    permission: op
-    trigger:
-        heal {cb1} by 100
-        broadcast "&2&lCreepeer boss I &acảm thấy quá chán, hắn tự hồi đầy máu cho bản thân!"
-
-command /idle2cb1:
-    permission: op
-    trigger:
-        loop all creepers:
-            if loop-entity has the scoreboard tag "cb1":
-                delete loop-entity
-                broadcast "&2&lCreepeer boss I &acảm thấy quá chán, hắn tự biến mất khỏi thế giới!"
-        
-                death_cb1()
-
-command /rampagecb1:
-    permission: op
-    trigger:
-        loop all creepers:
-            if loop-entity has the scoreboard tag "cb1":
-                delete loop-entity
-                broadcast "&2&lCreepeer boss I &ađã nổ được kha khá, hắn hết sạch thuốc nổ và trốn mất khỏi thế giới!"
-        
-                death_cb1()
+    chance of {@special_chance}:
+        add "special" to scoreboard tags of entity
 
 on right click on creeper:
     if event-player is holding shears in main hand:
@@ -97,208 +33,240 @@ on right click on creeper:
         if {_shears}'s name is "&e&lDefuser":
             if event-entity have the scoreboard tag "special":
                 if event-entity is not charged:
-                    add "defused" to the scoreboard tags of event-entity
-                    execute console command "/execute if score count_cb1 count_boss matches ..0 run truecb1"
-                    execute console command "/execute if score count_cb1 count_boss matches 1.. run falsecb1"
-                    if {cb1.canspawn} is true:
+                    # Kiểm tra số lượng boss qua BossLogic
+                    if score of "count_%{@id}%" for objective with id "count_boss" <= 0:
+                        
+                        add "defused" to the scoreboard tags of event-entity
+                        
+                        # Trừ độ bền kéo
                         repair player's tool by -150
                         if durability of player's tool <= 0:
                             remove player's tool from player
-                        #spawn
+
+                        # --- HIỆU ỨNG SPAWN ---
                         make 50 of flame at event-entity
                         play sound "entity.ender_dragon.growl" with volume 2 at the event-entity
                         strike lightning at event-entity
 
-                        set {cb1} to event-entity
-                        set {cb1uuid} to uuid of event-entity
-                        set {cb1.is.boss} to true
-                        set {cb1.cooldown1} to a random integer between 5 and 40
-                        set {cb1.cooldown2} to a random integer between 15 and 25
-                        set {cb1.cooldown3} to 2
+                        # --- KHỞI TẠO BOSS (BOSSLOGIC) ---
+                        Boss_Init(event-entity, {@id}, formatted {@name}, {@boss_hp}, {@boss_color})
+                        Boss_SetLimits({@id}, {@idle_heal_time}, {@idle_despawn_time}, {@rampage_kills})
 
-                        set {cb1.using.skill} to false
-                        set {cb1.do.explode} to true
-                        set {cb1.time.water} to 0
-                        set {cb1.do.skill2} to false
-
-                        set {cb1.bar} to bossbar named "cb1-bar" with title "&2&lCreepeer boss I &e[ %{cb1.x}%, %{cb1.z}%]" with color green with style segmented 10 with progress 100
-                        add all players to {cb1.bar}
-                        set {cb1.need.bossbar} to false
-
+                        # --- CÀI ĐẶT CÂU THOẠI ---
+                        set {_msgIdle1} to formatted {@msg_idle_heal}
+                        set {_msgIdle2} to formatted {@msg_idle_despawn}
+                        set {_msgRampage} to formatted {@msg_rampage}
+                        Boss_SetMessages({@id}, {_msgIdle1}, {_msgIdle2}, {_msgRampage})
+                        
+                        # Tin nhắn spawn bạn sẽ xử lý trong BossLogic hoặc thêm thủ công nếu cần
                         broadcast "&cAi đó đã triệu hồi &2&lCreepeer boss I&c!"
-                        set event-entity's custom name to "&2&lCreepeer boss I"
 
-                        execute console command "/scoreboard players add count_cb1 count_boss 1"
-                        execute console command "/scoreboard players set count_cb1 boss_rampage 0"
-                        add "cb1" to the scoreboard tags of event-entity
-                        execute console command "/scoreboard players set count_cb1 idle_time 0"
-                            
-                        #HP
-                        set event-entity's max health to 100
-                        set event-entity's health to 100
-            if event-entity doesn't have the scoreboard tag "defused":
-                add "defused" to the scoreboard tags of event-entity
-                repair player's tool by -20
-                if durability of player's tool <= 0:
-                    remove player's tool from player
+                        # --- THIẾT LẬP BIẾN SKILL RIÊNG ---
+                        set {boss::%{@id}%::cooldown1} to a random integer between 5 and 40
+                        set {boss::%{@id}%::cooldown2} to a random integer between 15 and 25
+                        set {boss::%{@id}%::cooldown3} to 2
 
+                        set {boss::%{@id}%::using.skill} to false
+                        set {boss::%{@id}%::do.explode} to true
+                        set {boss::%{@id}%::time.water} to 0
+                        set {boss::%{@id}%::do.skill2} to false
+                        
+                        # Đây là biến quan trọng để BossLogic kiểm tra
+                        set {boss::%{@id}%::need.bossbar} to false
 
-every 1 tick:
-    if {cb1.is.boss} is true:
-        set bar progress of {cb1.bar} to {cb1}'s health *100/{cb1}'s max health
-        add all players to {cb1.bar}
+                        # Cấu hình item drop handled in on death
+                    else:
+                        # Logic nếu đã có boss (giữ nguyên logic trừ độ bền nhẹ)
+                        if event-entity doesn't have the scoreboard tag "defused":
+                            add "defused" to the scoreboard tags of event-entity
+                            repair player's tool by -20
+                            if durability of player's tool <= 0:
+                                remove player's tool from player
 
+# 2. VÒNG LẶP LOGIC (SKILL & AI)
 every 20 tick:
-    if {cb1.is.boss} is true:
-        #Không phải chiêu
-
-        execute console command "dochunkload"
-        execute console command "scoreboard players add count_cb1 idle_time 1"
-        execute console command "execute if score count_cb1 idle_time matches 60 run idle1cb1"
-        execute console command "execute if score count_cb1 idle_time matches 300.. run idle2cb1"
-        execute console command "execute if score count_cb1 boss_rampage matches 40.. run rampagecb1"
-
-        if {cb1.need.bossbar} is false:
-            set bar title of {cb1.bar} to "&2&lCreepeer boss I &e[ %{cb1.x}%, %{cb1.z}%]"
+    if {active_bosses::*} contains {@id}:
         
-        #chiêu:
-        set {cb1.cooldown1} to {cb1.cooldown1} - 1
-        if {cb1.using.skill} is false:
-            if {cb1.cooldown1} <= 0:
-                set {cb1.cooldown1} to a random integer between 60 and 100
+        # --- GIẢM COOLDOWN ---
+        Boss_ReduceCooldown({@id}, 1, 1)
+        Boss_ReduceCooldown({@id}, 2, 1)
+        Boss_ReduceCooldown({@id}, 3, 1)
+
+        set {_boss} to {boss::%{@id}%}
+        set {_bar} to {boss::%{@id}%::bar} # Lấy BossBar để set title thủ công khi cần
+
+        # --- SKILL 1: TRÒ CHƠI (RED LIGHT GREEN LIGHT) ---
+        if {boss::%{@id}%::using.skill} is false:
+            if {boss::%{@id}%::cooldown1} <= 0:
+                set {boss::%{@id}%::cooldown1} to a random integer between 60 and 100
+                
+                # Xóa clone cũ
                 loop all creepers:
                     if loop-entity has the scoreboard tag "cb1.hallu":
                         delete loop-entity                   
-                uncharge {cb1}
-                set {cb1.using.skill} to true
-                set {cb1.need.bossbar} to true
-                apply invisibility potion of tier 1 without any particles to {cb1} for 30 seconds
-                make {cb1} invincible
-                set ai of {cb1} to false
-                set bar title of {cb1.bar} to "&2&lCreepeer boss I &eđang chuẩn bị một &aTRÒ CHƠI&e!"
-                set {_loc} to location of {cb1}
+                
+                uncharge {_boss}
+                set {boss::%{@id}%::using.skill} to true
+                
+                # BẬT CHẾ ĐỘ CHIẾM QUYỀN BOSSBAR
+                set {boss::%{@id}%::need.bossbar} to true 
+                
+                apply invisibility potion of tier 1 without any particles to {_boss} for 30 seconds
+                make {_boss} invincible
+                set ai of {_boss} to false
+
+                # Set title thủ công (vì BossLogic sẽ bỏ qua khi need.bossbar = true)
+                set bar title of {_bar} to "&2&lCreepeer boss I &eđang chuẩn bị một &aTRÒ CHƠI&e!"
+                
+                set {_loc} to location of {_boss}
                 loop all players:
                     if distance between loop-player and {_loc} <= 65:
                         set metadata value "game_failed" of loop-player to false
                         send actionbar "&4&l&kssssssssssssssssssssssssssssssssssss" to loop-player
                         play sound "entity.player.levelup" to loop-player
                         chance of 25%:
-                            if distance between loop-player and {cb1} <= 50:
-                                teleport {cb1} to loop-player
+                            if distance between loop-player and {_boss} <= 50:
+                                teleport {_boss} to loop-player
+                
                 wait 2 seconds
-                set bar title of {cb1.bar} to "&e&l3"
+                set bar title of {_bar} to "&e&l3"
                 loop all players:
                     if loop-player has metadata value "game_failed":
                         send actionbar "&4&l&kssssssssssssssssssssssssssssssssssss" to loop-player
                         play sound "block.note_block.pling" to loop-player
+                
                 wait 1 second
-                set bar title of {cb1.bar} to "&e&l2"
+                set bar title of {_bar} to "&e&l2"
                 loop all players:
                     if loop-player has metadata value "game_failed":
                         send actionbar "&4&l&kssssssssssssssssssssssssssssssssssss" to loop-player
                         play sound "block.note_block.pling" to loop-player
+                
                 wait 1 second
-                set bar title of {cb1.bar} to "&e&l1"
+                set bar title of {_bar} to "&e&l1"
                 loop all players:
                     if loop-player has metadata value "game_failed":
                         send actionbar "&4&l&kssssssssssssssssssssssssssssssssssss" to loop-player
                         play sound "block.note_block.pling" to loop-player
+                
                 wait 1 second
-                set bar title of {cb1.bar} to "&a&lTRÒ CHƠI BẮT ĐẦU!"
+                set bar title of {_bar} to "&a&lTRÒ CHƠI BẮT ĐẦU!"
+                
                 chance of 50%:
                     loop all players:
                         if loop-player has metadata value "game_failed":
-                            send actionbar "&4&lTIẾP TỤC DI CHUYỂN VÀ ĐỪNG DỪNG LẠI" to loop-player #block.bell.use
+                            send actionbar "&4&lTIẾP TỤC DI CHUYỂN VÀ ĐỪNG DỪNG LẠI" to loop-player
                             play sound "block.bell.use" to loop-player
                     wait 40 ticks
-                    set {pl.can.stop} to 0
+                    set {boss::%{@id}%::game_state} to 0 # 0: Phải di chuyển
                 else:
                     loop all players:
                         if loop-player has metadata value "game_failed":
                             send actionbar "&4&lĐỪNG DI CHUYỂN NỮA!" to loop-player
                             play sound "block.bell.use" to loop-player
                     wait 40 ticks
-                    set {pl.can.stop} to 1
+                    set {boss::%{@id}%::game_state} to 1 # 1: Phải đứng im
+                
                 loop all players:
                     set metadata value "coord" of loop-player to location of loop-player
+                
                 loop all players:
                     if loop-player has metadata value "game_failed":
                         send actionbar "&4&lAI ĐÓ SẮP ĐƯỢC CHỌN VÀ SẼ PHẢI THỰC HIỆN ĐIỀU NGƯỢC LẠI!!!" to loop-player
                         play sound "entity.experience_orb.pickup" to loop-player
+                
                 wait 40 ticks
                 chance of 50%:
                     wait 40 ticks
-                chance of 50%:
-                    wait 40 ticks
+                    chance of 50%:
+                        wait 40 ticks
+                
                 loop all players:
                     if metadata value "game_failed" of loop-player is false:
                         add loop-player to {_chosen.list::*}
-                set {pl.chosen} to a random element out of {_chosen.list::*}
-                set {chosen.free} to true
+                
+                set {boss::%{@id}%::chosen_player} to a random element out of {_chosen.list::*}
+                set {boss::%{@id}%::chosen_free} to true
+                
                 loop all players:
                     if metadata value "game_failed" of loop-player is false:
-                        if {pl.chosen} is not loop-player:
-                            send actionbar "&e&lĐÓ LÀ &4&l%{pl.chosen}% &e&l!!!" to loop-player
+                        if {boss::%{@id}%::chosen_player} is not loop-player:
+                            set {_p} to {boss::%{@id}%::chosen_player}
+                            send actionbar "&e&lĐÓ LÀ &4&l%{_p}% &e&l!!!" to loop-player
                             play sound "entity.experience_orb.pickup" to loop-player
-                if {pl.chosen} is not set:
-                    heal {cb1} by 50 hearts
-                    broadcast "&cLũ gà này đã không thực hiện đúng và &2&lCreepeer boss I &c đã tự hồi &a100 &cmáu cho mình!"
-                wait 60 ticks
-                set {chosen.free} to false
                 
+                if {boss::%{@id}%::chosen_player} is not set:
+                    heal {_boss} by 50 hearts
+                    broadcast "&cLũ gà này đã không thực hiện đúng và &2&lCreepeer boss I &c đã tự hồi &a100 &cmáu cho mình!"
+                
+                wait 60 ticks
+                set {boss::%{@id}%::chosen_free} to false
                 wait 100 ticks
-                set {chosen.free} to false
-                remove invisibility from {cb1}
-                make {cb1} vincible
-                charge {cb1}
-                set {cb1.need.bossbar} to false
-                set {pl.can.stop} to 2
-                set ai of {cb1} to true
+                set {boss::%{@id}%::chosen_free} to false
+                
+                remove invisibility from {_boss}
+                make {_boss} vincible
+                charge {_boss}
+                
+                # TRẢ QUYỀN BOSSBAR CHO BOSSLOGIC
+                set {boss::%{@id}%::need.bossbar} to false
+                
+                set {boss::%{@id}%::game_state} to 2 # 2: Kết thúc game
+                set ai of {_boss} to true
                 delete metadata value "coord" of all players
                 delete metadata value "game_failed" of all players
-                set {cb1.using.skill} to false
-                delete {pl.chosen}
-                delete {pl.chosen.value}
+                set {boss::%{@id}%::using.skill} to false
+                delete {boss::%{@id}%::chosen_player}
+                
                 broadcast "&eTrò chơi kết thúc!"
 
-        
-        set {cb1.cooldown2} to {cb1.cooldown2} - 1
-        if {cb1.using.skill} is false:
-            if {cb1.cooldown2} <= 0:
-                set {pl.count} to 0
+        # --- SKILL 2: HALLUCINATIONS (ẢO ẢNH) ---
+        if {boss::%{@id}%::using.skill} is false:
+            if {boss::%{@id}%::cooldown2} <= 0:
+                set {_pl.count} to 0
                 loop all players:
-                    if the distance between loop-player and {cb1} <= 50:
-                        set {pl.count} to {pl.count} + 1
+                    if distance between loop-player and {_boss} <= 50:
+                        add 1 to {_pl.count}
                         add loop-player to {_pl.list::*}
-                if {pl.count} = 0:
-                    set {cb1.cooldown2} to 0
+                
+                if {_pl.count} = 0:
+                    set {boss::%{@id}%::cooldown2} to 0
                 else:
-                    set {cb1.cooldown2} to a random integer between 50 and 60
-                    detonate {cb1}
-                    set {cb1.using.skill} to true
+                    set {boss::%{@id}%::cooldown2} to a random integer between 50 and 60
+                    detonate {_boss}
+                    set {boss::%{@id}%::using.skill} to true
+                    
                     wait 70 ticks
-                    set {cb1.do.skill2} to true
-                    set {cb1.need.bossbar} to true
-                    set bar title of {cb1.bar} to "&2&lCreepeer boss I"
-                    hide {cb1}'s custom name
-                    if {pl.count} = 1:
-                        spawn 4 creepers at {cb1}
-                    else if {pl.count} = 2:
-                        spawn 7 creepers at {cb1}
-                    else if {pl.count} = 3:
-                        spawn 10 creepers at {cb1}
+                    set {boss::%{@id}%::do.skill2} to true
+                    
+                    # BẬT CHẾ ĐỘ CHIẾM QUYỀN BOSSBAR (ẨN TOẠ ĐỘ)
+                    set {boss::%{@id}%::need.bossbar} to true
+                    set bar title of {_bar} to "&2&lCreepeer boss I"
+                    
+                    hide {_boss}'s custom name
+                    
+                    if {_pl.count} = 1:
+                        spawn 4 creepers at {_boss}
+                    else if {_pl.count} = 2:
+                        spawn 7 creepers at {_boss}
+                    else if {_pl.count} = 3:
+                        spawn 10 creepers at {_boss}
                     else:
-                        spawn 12 creepers at {cb1}
-                    strike lightning at {cb1}
+                        spawn 12 creepers at {_boss}
+                    
+                    strike lightning at {_boss}
                     wait 1 seconds
+                    
                     loop all creepers:
                         if loop-entity has the scoreboard tag "cb1.hallu":
                             set loop-entity's target to a random element out of {_pl.list::*}
+                    
                     wait 2 seconds
                     chance of 25%:
-                        set ai of {cb1} to false
+                        set ai of {_boss} to false
                     else:
-                        set {cb1}'s target to a random element out of {_pl.list::*}
+                        set {_boss}'s target to a random element out of {_pl.list::*}
+                    
                     loop all creepers:
                         if loop-entity has the scoreboard tag "cb1.hallu":
                             chance of 25%:
@@ -306,38 +274,44 @@ every 20 tick:
                             else:
                                 chance of 50%:
                                     apply speed potion of tier 1 to loop-entity for 10 seconds
+                    
                     wait 10 seconds
-                    set {cb1.need.bossbar} to false
+                    
+                    # TRẢ QUYỀN BOSSBAR
+                    set {boss::%{@id}%::need.bossbar} to false
+                    
                     wait 5 seconds
-                    set {hallu.remain} to 0
+                    set {_hallu.remain} to 0
                     loop all creepers:
                         if loop-entity has the scoreboard tag "cb1.hallu":
-                            set {hallu.remain} to {hallu.remain} + 1
+                            add 1 to {_hallu.remain}
                             delete loop-entity
-                    if {hallu.remain} is not 0:
-                        heal {cb1} by {hallu.remain} * 10
-                        broadcast "&2&lCreepeer boss I &cđã hồi &a%{hallu.remain}*10% &cmáu bằng cách hấp thụ số ảo ảnh còn tồn tại&c!"
-                        set {hallu.remain} to 0
-                    show {cb1}'s custom name
-                    set {cb1.do.skill2} to false
-                    set ai of {cb1} to true
-                    set {cb1.using.skill} to false
-                    delete {_pl.list::*}
+                    
+                    if {_hallu.remain} is not 0:
+                        heal {_boss} by {_hallu.remain} * 10
+                        broadcast "&2&lCreepeer boss I &cđã hồi &a%{_hallu.remain}*10% &cmáu bằng cách hấp thụ số ảo ảnh còn tồn tại&c!"
+                    
+                    show {_boss}'s custom name
+                    set {boss::%{@id}%::do.skill2} to false
+                    set ai of {_boss} to true
+                    set {boss::%{@id}%::using.skill} to false
 
-        set {cb1.cooldown3} to {cb1.cooldown3} - 1
-        if {cb1.using.skill} is false:
-            if {cb1.cooldown3} <= 0:
-                set {pl.count2} to 0
-                set {_loc} to location of {cb1}
+        # --- SKILL 3: TIME BOMB ---
+        if {boss::%{@id}%::using.skill} is false:
+            if {boss::%{@id}%::cooldown3} <= 0:
+                set {_pl.count2} to 0
+                set {_loc} to location of {_boss}
                 loop all players:
                     if distance between loop-player and {_loc} <= 30:
-                        set {pl.count2} to {pl.count2} + 1
+                        add 1 to {_pl.count2}
                         add loop-player to {_pl.list2::*}
-                if {pl.count2} > 0:
-                    set {cb1.using.skill} to true
-                    set {cb1.cooldown3} to a random integer between 30 and 35
+                
+                if {_pl.count2} > 0:
+                    set {boss::%{@id}%::using.skill} to true
+                    set {boss::%{@id}%::cooldown3} to a random integer between 30 and 35
                     set {_chosen2} to a random element out of {_pl.list2::*}
                     set {_loc2} to location of {_chosen2}
+                    
                     broadcast "&2&lCreepeer boss I &cđã chọn vị trị hiện tại của &e%{_chosen2}% &cvà đặt một quả bom hẹn giờ sẽ nổ sau 9 giây!"
                     play sound "entity.experience_orb.pickup" with volume 5 at {_loc2}
                     wait 6 seconds
@@ -348,9 +322,10 @@ every 20 tick:
                     wait 20 ticks
                     play sound "block.note_block.pling" with volume 3 at {_loc2}
                     wait 20 ticks
+                    
                     create an explosion of force 10 at {_loc2}
-                    # Vụ nổ trung tâm
-
+                    
+                    # Vụ nổ lan
                     loop all players:
                         if distance between loop-player and {_loc2} <= 10:
                             create a safe explosion of force 2 at loop-player
@@ -360,99 +335,130 @@ every 20 tick:
                             create a safe explosion of force 0.5 at loop-player
                         else if distance between loop-player and {_loc2} <= 40:
                             create a safe explosion of force 0.25 at loop-player
-                    set {cb1.using.skill} to false
-                    delete {_pl.list2::*}
-            
+                    
+                    set {boss::%{@id}%::using.skill} to false
 
-on quit:
-    if metadata value "game_failed" of player is false:
-        if {pl.chosen} is player:
-            heal {cb1} by 40 hearts
-            broadcast "&e&lKẻ được chọn - %player% &cđã thoát game trong lúc trờ chơi diễn ra và hồi &a80 &cmáu cho &2&lCreepeer boss I&c!"
-            set metadata value "game_failed" of player to true
-        else:
-            heal {cb1} by 10 hearts
-            broadcast "&cAi đó đã thoát game trong lúc trò chơi diễn ra và hồi &a20 &cmáu cho &2&lCreepeer boss I&c!"
-            set metadata value "game_failed" of player to true
-        
-
+# 3. LOGIC KIỂM TRA TRÒ CHƠI (EVERY 4 TICKS)
 every 4 ticks:
-    if {pl.can.stop} is 0:
-        loop all players:
-            if loop-player has metadata value "game_failed":
-                if {pl.chosen} is loop-player:
+    if {active_bosses::*} contains {@id}:
+        set {_boss} to {boss::%{@id}%}
+        set {_gameState} to {boss::%{@id}%::game_state}
+        set {_chosen} to {boss::%{@id}%::chosen_player}
+        set {_chosenFree} to {boss::%{@id}%::chosen_free}
+
+        # Trạng thái 0: PHẢI DI CHUYỂN
+        if {_gameState} is 0:
+            loop all players:
+                if loop-player has metadata value "game_failed":
                     set {_old} to metadata value "coord" of loop-player
                     set metadata value "coord" of loop-player to location of loop-player
                     set {_new} to metadata value "coord" of loop-player
 
-                    # Nếu có thay đổi → vi phạm
-                    if {chosen.free} is not true:
-                        if distance between {_old} and {_new} > 0.1:
-                            if metadata value "game_failed" of loop-player is false:
-                                create an explosion of force 3 at loop-player
-                                set metadata value "game_failed" of loop-player to true
-                                heal {cb1} by 25 hearts
-                                broadcast "&e&lKẻ được chọn - %loop-player% &cđã không thực hiện đúng và hồi &a50 &cmáu cho &2&lCreepeer boss I&c!"
-                                
-                else:
-                    set {_old} to metadata value "coord" of loop-player
-                    set metadata value "coord" of loop-player to location of loop-player
-                    set {_new} to metadata value "coord" of loop-player
-
-                    # Nếu có thay đổi → vi phạm
-                    if distance between {_old} and {_new} < 0.1:
-                        if metadata value "game_failed" of loop-player is false:
-                            create an explosion of force 3 at loop-player
-                            set metadata value "game_failed" of loop-player to true
-                            heal {cb1} by 5 hearts
-                            broadcast "&cAi đó đã không thực hiện đúng và hồi &a10 &cmáu cho &2&lCreepeer boss I&c!"
-                            
-    
-    if {pl.can.stop} is 1:
-        loop all players:
-            if loop-player has metadata value "game_failed":
-                if {pl.chosen} is loop-player:
-                    set {_old} to metadata value "coord" of loop-player
-                    set metadata value "coord" of loop-player to location of loop-player
-                    set {_new} to metadata value "coord" of loop-player
-
-                    # Nếu có thay đổi → vi phạm
-                    if {chosen.free} is not true:
+                    # Logic kẻ được chọn (ngược lại)
+                    if {_chosen} is loop-player:
+                        if {_chosenFree} is not true:
+                            if distance between {_old} and {_new} > 0.1:
+                                if metadata value "game_failed" of loop-player is false:
+                                    create an explosion of force 3 at loop-player
+                                    set metadata value "game_failed" of loop-player to true
+                                    heal {_boss} by 25 hearts
+                                    broadcast "&e&lKẻ được chọn - %loop-player% &cđã không thực hiện đúng và hồi &a50 &cmáu cho &2&lCreepeer boss I&c!"
+                    else:
                         if distance between {_old} and {_new} < 0.1:
                             if metadata value "game_failed" of loop-player is false:
                                 create an explosion of force 3 at loop-player
                                 set metadata value "game_failed" of loop-player to true
-                                heal {cb1} by 25 hearts
-                                broadcast "&e&lKẻ được chọn - %loop-player% &cđã không thực hiện đúng và hồi &a50 &cmáu cho &2&lCreepeer boss I&c!"
-    
-                else:
+                                heal {_boss} by 5 hearts
+                                broadcast "&cAi đó đã không thực hiện đúng và hồi &a10 &cmáu cho &2&lCreepeer boss I&c!"
+
+        # Trạng thái 1: PHẢI ĐỨNG IM
+        if {_gameState} is 1:
+            loop all players:
+                if loop-player has metadata value "game_failed":
                     set {_old} to metadata value "coord" of loop-player
                     set metadata value "coord" of loop-player to location of loop-player
                     set {_new} to metadata value "coord" of loop-player
 
-                    # Nếu có thay đổi → vi phạm
-                    if distance between {_old} and {_new} > 0.1:
-                        if metadata value "game_failed" of loop-player is false:
-                            create an explosion of force 3 at loop-player
-                            set metadata value "game_failed" of loop-player to true
-                            heal {cb1} by 5 hearts
-                            broadcast "&cAi đó đã không thực hiện đúng và hồi &a10 &cmáu cho &2&lCreepeer boss I&c!"
-                            
+                    if {_chosen} is loop-player:
+                        if {_chosenFree} is not true:
+                            if distance between {_old} and {_new} < 0.1:
+                                if metadata value "game_failed" of loop-player is false:
+                                    create an explosion of force 3 at loop-player
+                                    set metadata value "game_failed" of loop-player to true
+                                    heal {_boss} by 25 hearts
+                                    broadcast "&e&lKẻ được chọn - %loop-player% &cđã không thực hiện đúng và hồi &a50 &cmáu cho &2&lCreepeer boss I&c!"
+                    else:
+                        if distance between {_old} and {_new} > 0.1:
+                            if metadata value "game_failed" of loop-player is false:
+                                create an explosion of force 3 at loop-player
+                                set metadata value "game_failed" of loop-player to true
+                                heal {_boss} by 5 hearts
+                                broadcast "&cAi đó đã không thực hiện đúng và hồi &a10 &cmáu cho &2&lCreepeer boss I&c!"
+
+# 4. SỰ KIỆN KHÁC
+on damage of creeper by player:
+    if victim has the scoreboard tag "special":
+        if the victim is not charged:
+            strike lightning at victim
+
+on damage of creeper:
+    if the damage cause is a lightning strike:
+        cancel event
+        if {boss::%{@id}%::do.skill2} is true:
+            if victim doesn't have the scoreboard tag "cb1":
+                add "cb1.hallu" to the scoreboard tags of victim
+    
+    if victim has scoreboard tag {@id}:
+        if attacker is not a player:
+            cancel event
+        else:
+            set {boss::%{@id}%::idle_time} to 0
+            if {boss::%{@id}%::do.skill2} is not true:
+                chance of 25%:
+                    apply resistance potion of tier 2 to victim for 2 seconds
+                    detonate victim
+            else:
+                loop all creepers:
+                    if loop-entity has the scoreboard tag "cb1.hallu":
+                        delete loop-entity
+                
+                broadcast "&aAi đó đã đánh trúng &2&lCreepeer boss I&c!"
+                set ai of victim to true
+                set {boss::%{@id}%::do.skill2} to false
+                set {boss::%{@id}%::using.skill} to false
+            
+            if damage cause is entity explosion:
+                cancel event
+                heal victim by 5 hearts
+                broadcast "&2&lCreepeer boss I &chấp thụ vụ nổ lên hắn và hồi máu!"
+
+    if victim has the scoreboard tag "cb1.hallu":
+        if attacker is not a player:
+            cancel event
+        else:
+            delete victim
+            if {boss::%{@id}%} is set:
+                heal {boss::%{@id}%} by 5 hearts
+                broadcast "&cAi đó đã bị lừa bởi ảo ảnh và hồi &a10 &cmáu cho &2&lCreepeer boss I&c!"
 
 on explosion prime:
     if event-entity has the scoreboard tag "cb1.hallu":
-        heal {cb1} by 5 hearts
-        broadcast "&cAi đó đã bị lừa bởi ảo ảnh và hồi &a10 &cmáu cho &2&lCreepeer boss I&c!"
+        if {boss::%{@id}%} is set:
+            heal {boss::%{@id}%} by 5 hearts
+            broadcast "&cAi đó đã bị lừa bởi ảo ảnh và hồi &a10 &cmáu cho &2&lCreepeer boss I&c!"
         delete event-entity
         cancel event
-        execute console command "/scoreboard players set count_cb1 idle_time 0"
-    if event-entity has the scoreboard tag "cb1":
+        set {boss::%{@id}%::idle_time} to 0
+    
+    if event-entity has scoreboard tag {@id}:
         cancel event
-        if {cb1.do.skill2} is not true:
-            if {cb1.using.skill} is false:
-                if {cb1.do.explode} is true:
+        set {_boss} to event-entity
+        
+        if {boss::%{@id}%::do.skill2} is not true:
+            if {boss::%{@id}%::using.skill} is false:
+                if {boss::%{@id}%::do.explode} is true:
                     apply resistance potion of tier 3 to event-entity for 5 seconds
-                    set {cb1.do.explode} to false
+                    set {boss::%{@id}%::do.explode} to false
                     broadcast "&2&lCreepeer boss &cchuẩn bị nổ một cái bùm sau 3 giây!"
                     play sound "block.note_block.pling" with volume 3 at event-entity
                     wait 20 ticks
@@ -465,49 +471,59 @@ on explosion prime:
                     create an explosion of force 3 at {_loc}
                     wait 2 ticks
                     create a safe explosion of force 10 at event-entity
-                    set {cb1.do.explode} to true
-                    execute console command "/scoreboard players set count_cb1 idle_time 0"
+                    set {boss::%{@id}%::do.explode} to true
+                    set {boss::%{@id}%::idle_time} to 0
         else:
-            set {hallu.remain} to 0
+            set {_hallu.remain} to 0
             loop all creepers:
                 if loop-entity has the scoreboard tag "cb1.hallu":
-                    set {hallu.remain} to {hallu.remain} + 1
+                    add 1 to {_hallu.remain}
                     delete loop-entity
-            if {hallu.remain} is not 0: 
-                heal {cb1} by {hallu.remain} * 10
-                broadcast "&2&lCreepeer boss I &cđã hồi &a%{hallu.remain}*10% &cmáu bằng cách hấp thụ số ảo ảnh còn tồn tại&c!"
-                set {hallu.remain} to 0
-            set {cb1.do.skill2} to false
-            set {cb1.using.skill} to false
+            
+            if {_hallu.remain} is not 0: 
+                heal {_boss} by {_hallu.remain} * 10
+                broadcast "&2&lCreepeer boss I &cđã hồi &a%{_hallu.remain}*10% &cmáu bằng cách hấp thụ số ảo ảnh còn tồn tại&c!"
+            
+            set {boss::%{@id}%::do.skill2} to false
+            set {boss::%{@id}%::using.skill} to false
             create an explosion of force 3 at event-entity
             wait 2 ticks
             create a safe explosion of force 15 at event-entity
             broadcast "&2&lCreepeer boss I &eđã sử dụng ảo ảnh thành công để bí mật tiếp cận mục tiêu và gây một vụ nổ lớn!"
-            execute console command "/scoreboard players set count_cb1 idle_time 0"
+            set {boss::%{@id}%::idle_time} to 0
+    
     if event-entity has the scoreboard tag "defused":
         cancel event
 
+on quit:
+    if metadata value "game_failed" of player is false:
+        if {active_bosses::*} contains {@id}:
+            set {_boss} to {boss::%{@id}%}
+            if {boss::%{@id}%::chosen_player} is player:
+                heal {_boss} by 40 hearts
+                broadcast "&e&lKẻ được chọn - %player% &cđã thoát game trong lúc trờ chơi diễn ra và hồi &a80 &cmáu cho &2&lCreepeer boss I&c!"
+                set metadata value "game_failed" of player to true
+            else:
+                heal {_boss} by 10 hearts
+                broadcast "&cAi đó đã thoát game trong lúc trò chơi diễn ra và hồi &a20 &cmáu cho &2&lCreepeer boss I&c!"
+                set metadata value "game_failed" of player to true
+
 on death of player:
     if event-damage cause is block explosion:
-        execute console command "/scoreboard players add count_cb1 boss_rampage 1"
-        
+        add 1 to {boss::%{@id}%::rampage_count}
+
 on death of creeper:
-    if victim has the scoreboard tag "cb1":
-        broadcast "&a%attacker% đã đánh bại &2&lCreepeer boss I&a!"
-
-        death_cb1()
-
-        set {pl.can.stop} to 2
-        set ai of {cb1} to true
+    if victim has scoreboard tag {@id}:
+        broadcast formatted {@msg_death}
+        
+        # --- CLEANUP ---
+        set {boss::%{@id}%::game_state} to 2
         delete metadata value "coord" of all players
         delete metadata value "game_failed" of all players
-        set {cb1.using.skill} to false
-        delete {pl.chosen}
-        delete {pl.chosen.value}
-
+        set {boss::%{@id}%::using.skill} to false
+        delete {boss::%{@id}%::chosen_player}
+        
+        Boss_Cleanup({@id})
+        
         wait 10 seconds
         drop 1 of {harvester}
-
-on vehicle enter:
-    if event-entity has the scoreboard tag "cb1":
-        cancel event
