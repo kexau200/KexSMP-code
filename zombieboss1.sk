@@ -1,28 +1,47 @@
 # ==============================================================================
-# ZOMBIE BOSS I - FULL CODE (REFACTORED)
+# ZOMBIE BOSS I - FULL CODE (REFACTORED WITH OPTIONS)
 # ==============================================================================
-on spawn:
-    chance of 50%:
-        add "special" to scoreboard tags of entity
+
+options:
+    # --- CẤU HÌNH CƠ BẢN ---
+    special_chance: 0.5
+    id: "zb1"                       # ID dùng cho biến và tag
+    name: "&2Zombie Boss I"         # Tên hiển thị (đặt trong ngoặc kép)
+    boss_hp: 50                     # Lượng máu tối đa
+    boss_color: dark green          # Màu của thanh BossBar
+
+    # --- GIỚI HẠN & THỜI GIAN ---
+    idle_heal_time: 30              # Thời gian (giây) hồi máu khi idle
+    idle_despawn_time: 300          # Thời gian (giây) despawn khi idle
+    rampage_kills: 15               # Số kill kích hoạt rampage
+
+    # --- TIN NHẮN & THÔNG BÁO ---
+    msg_idle_heal: "&2Zombie Boss I &acảm thấy quá chán, hắn tự hồi đầy máu cho bản thân!"
+    msg_idle_despawn: "&2Zombie Boss I &acảm thấy quá chán, hắn tự biến mất khỏi thế giới!"
+    msg_rampage: "&2Zombie Boss I &ađã giết được tổng cộng 15 mạng, hắn cảm thấy game quá dễ và tự biến mất khỏi thế giới!"
+    msg_death: "&a%attacker% đã đánh bại &cZombie Boss I&a!"
 
 # 1. CẤU HÌNH SPAWN & KHỞI TẠO
+on spawn:
+    chance of {@special_chance}:
+        add "special" to scoreboard tags of entity
+
 on damage of zombie by player:
-    if score of "count_zb1" for objective with id "count_boss" <= 0:
+    # Kiểm tra biến đếm số lượng boss (dùng ID động)
+    if score of "count_%{@id}%" for objective with id "count_boss" <= 0:
         if victim has the scoreboard tag "special":
             # --- BƯỚC 1: KHỞI TẠO CƠ BẢN ---
-            # Entity, ID, Tên hiển thị, Máu, Màu BossBar
-            Boss_Init(victim, "zb1", "&2Zombie Boss I", 50, dark green)
+            # Sử dụng formatted {@name} như yêu cầu
+            Boss_Init(victim, {@id}, formatted {@name}, {@boss_hp}, {@boss_color})
 
             # --- BƯỚC 2: CÀI ĐẶT GIỚI HẠN ---
-            # Idle1 (Hồi máu): 30s | Idle2 (Biến mất): 300s | Rampage: 15 kills
-            Boss_SetLimits("zb1", 30, 300, 15)
+            Boss_SetLimits({@id}, {@idle_heal_time}, {@idle_despawn_time}, {@rampage_kills})
 
             # --- BƯỚC 3: CÀI ĐẶT CÂU THOẠI ---
-            set {_msgIdle1} to "&2Zombie Boss I &acảm thấy quá chán, hắn tự hồi đầy máu cho bản thân!"
-            set {_msgIdle2} to "&2Zombie Boss I &acảm thấy quá chán, hắn tự biến mất khỏi thế giới!"
-            set {_msgRampage} to "&2Zombie Boss I &ađã giết được tổng cộng 15 mạng, hắn cảm thấy game quá dễ và tự biến mất khỏi thế giới!"
-            
-            Boss_SetMessages("zb1", {_msgIdle1}, {_msgIdle2}, {_msgRampage})
+            set {_msgIdle1} to formatted {@msg_idle_heal}
+            set {_msgIdle2} to formatted {@msg_idle_despawn}
+            set {_msgRampage} to formatted {@msg_rampage}
+            Boss_SetMessages({@id}, {_msgIdle1}, {_msgIdle2}, {_msgRampage})
 
             # --- HIỆU ỨNG SPAWN CŨ ---
             make victim adult
@@ -31,9 +50,10 @@ on damage of zombie by player:
             strike lightning at victim
 
             # --- THIẾT LẬP BIẾN SKILL RIÊNG ---
-            set {boss::zb1::cooldown1} to a random integer between 10 and 15
-            set {boss::zb1::cooldown2} to a random integer between 10 and 15
-            set {boss::zb1::br} to true
+            # Đã đổi thành {boss::%{@id}%::...}
+            set {boss::%{@id}%::cooldown1} to a random integer between 10 and 15
+            set {boss::%{@id}%::cooldown2} to a random integer between 10 and 15
+            set {boss::%{@id}%::br} to true
 
             # --- TRANG BỊ ---
             equip victim with chainmail helmet
@@ -44,64 +64,69 @@ on damage of zombie by player:
 
 # 2. VÒNG LẶP LOGIC (SKILL & AI)
 every 20 tick:
-    # Chỉ chạy khi Boss ZB1 đang tồn tại trong danh sách của Core
-    if {active_bosses::*} contains "zb1":
+    # Chỉ chạy khi Boss đang tồn tại trong danh sách Active
+    if {active_bosses::*} contains {@id}:
         
         # --- GIẢM COOLDOWN ---
-        Boss_ReduceCooldown("zb1", 1, 1)
-        Boss_ReduceCooldown("zb1", 2, 1)
+        Boss_ReduceCooldown({@id}, 1, 1)
+        Boss_ReduceCooldown({@id}, 2, 1)
 
-        set {_zb1} to {boss::zb1} # Lấy entity boss từ biến Core
+        set {_boss} to {boss::%{@id}%} # Lấy entity boss từ biến Core
 
         # --- SKILL 1: DẬM CHÂN (SMASH) ---
-        if {boss::zb1::cooldown1} <= 0:
+        if {boss::%{@id}%::cooldown1} <= 0:
             loop all players:
-                set {_zb1loc} to location of {_zb1}
-                if distance between loop-player and {_zb1loc} <= 5:
+                set {_bossLoc} to location of {_boss}
+                if distance between loop-player and {_bossLoc} <= 5:
                     chance of 25%:
                         set {_ploc} to location of loop-player
-                        set {_v} to vector between {_zb1loc} and {_ploc}
+                        set {_v} to vector between {_bossLoc} and {_ploc}
                         set y of {_v} to 0
                         set {_v.length} to the vector length of {_v}
 
-                        push {_zb1} up with speed 1.2
-                        push {_zb1} along vector {_v} with speed {_v.length}/7
+                        push {_boss} up with speed 1.2
+                        push {_boss} along vector {_v} with speed {_v.length}/7
 
-                        set {boss::zb1::do.skill1} to true
-                        set {_zb1}'s target to loop-player
+                        set {boss::%{@id}%::do.skill1} to true
+                        set {_boss}'s target to loop-player
                         stop loop
 
         # --- SKILL 2: CẦU DỊCH CHUYỂN (TP BALL) ---
-        if {boss::zb1::cooldown2} <= 0:
+        if {boss::%{@id}%::cooldown2} <= 0:
             loop all players:
-                set {_zb1loc} to location of {_zb1}
-                if distance between loop-player and {_zb1loc} <= 30:
+                set {_bossLoc} to location of {_boss}
+                if distance between loop-player and {_bossLoc} <= 30:
                     chance of 50%:
-                        set {boss::zb1::cooldown2} to a random integer between 10 and 15
+                        set {boss::%{@id}%::cooldown2} to a random integer between 10 and 15
                         set {_ploc} to location of loop-player
-                        set {_v2} to vector between {_zb1loc} and {_ploc}
-                        make {_zb1} shoot a snowball at speed 1 {_v2}:
+                        set {_v2} to vector between {_bossLoc} and {_ploc}
+                        make {_boss} shoot a snowball at speed 1 {_v2}:
                             set event-entity's custom name to "tpball"
-                        set {boss::zb1::cooldown2} to a random integer between 10 and 15
+                
+                        set {boss::%{@id}%::cooldown2} to a random integer between 10 and 15
 
         # --- TRẠNG THÁI CUỒNG NỘ (ENRAGE) ---
-        if {_zb1}'s health <= 12.5:
-            apply speed potion of tier 1 to {_zb1} for 3 seconds
-            apply strength potion of tier 1 to {_zb1} for 3 seconds
-            if {boss::zb1::br} is true:
-                broadcast "&aZombie Boss I &4trở nên cuồng nộ, hắn được cường hóa tốc chạy và sát thương!"
-                set {boss::zb1::br} to false
-        if {_zb1}'s health > 12.5:
-            set {boss::zb1::br} to true
+        # Tự động tính 25% máu dựa trên options boss_hp
+        if {_boss}'s health <= ({@boss_hp} / 4):
+            apply speed potion of tier 1 to {_boss} for 3 seconds
+            apply strength potion of tier 1 to {_boss} for 3 seconds
+            
+            if {boss::%{@id}%::br} is true:
+                # Dùng formatted name cho thông báo
+                broadcast formatted "%{@name}% &4trở nên cuồng nộ, hắn được cường hóa tốc chạy và sát thương!"
+                set {boss::%{@id}%::br} to false
+        
+        if {_boss}'s health > ({@boss_hp} / 4):
+            set {boss::%{@id}%::br} to true
 
 # 3. XỬ LÝ SÁT THƯƠNG GÂY RA (SKILL EFFECT)
 on damage of zombie:
-    if {boss::zb1::do.skill1} is true:
-        set {boss::zb1::idle_time} to 0
-        if victim has scoreboard tag "zb1": # Kiểm tra bằng tag ID
+    if {boss::%{@id}%::do.skill1} is true:
+        set {boss::%{@id}%::idle_time} to 0
+        if victim has scoreboard tag {@id}:
             if event-damage cause is fall:
-                set {boss::zb1::do.skill1} to false
-                set {boss::zb1::cooldown1} to a random integer between 10 and 15
+                set {boss::%{@id}%::do.skill1} to false
+                set {boss::%{@id}%::cooldown1} to a random integer between 10 and 15
                 
                 # Hiệu ứng nổ
                 set {_loc} to location of victim
@@ -117,11 +142,11 @@ on damage of zombie:
             
 # 4. XỬ LÝ SÁT THƯƠNG NHẬN VÀO (DEFENSE)
 on damage of zombie:
-    if victim has scoreboard tag "zb1":
+    if victim has scoreboard tag {@id}:
         if attacker is not a player:
             cancel event # Miễn nhiễm sát thương mob/môi trường
         else:
-            set {boss::zb1::idle_time} to 0
+            set {boss::%{@id}%::idle_time} to 0
             # Phản đòn: Dịch chuyển người chơi
             chance of 50%:
                 if distance between victim and attacker <= 4:
@@ -132,22 +157,25 @@ on damage of zombie:
 
 # 5. XỬ LÝ KHI GIẾT NGƯỜI CHƠI (RAMPAGE & HEAL)
 on death of player:
-    if attacker has scoreboard tag "zb1":
-        add 1 to {boss::zb1::rampage_count}
+    if attacker has scoreboard tag {@id}:
+        add 1 to {boss::%{@id}%::rampage_count}
     
-        ForceLoadRemove({_zb1}, 33)
-        # Hồi máu nếu boss yếu
-        if attacker's health <= 12.5:
+        ForceLoadRemove({_boss}, 33) # Lưu ý: Biến {_boss} cần được định nghĩa hoặc lấy lại từ {boss::%{@id}%}
+        # Ở event này attacker là boss, nên ta dùng attacker
+        
+        # Hồi máu nếu boss yếu (dưới 25%)
+        if attacker's health <= ({@boss_hp} / 4):
             heal attacker by 5
-            broadcast "&cZombie Boss I &avừa hấp thụ sinh lực của kẻ ngã xuống!"
+            broadcast formatted "%{@name}% &avừa hấp thụ sinh lực của kẻ ngã xuống!"
 
 # 6. XỬ LÝ KHI BOSS CHẾT
 on death of zombie:
-    if victim has scoreboard tag "zb1":
-        broadcast "&a%attacker% đã đánh bại &cZombie Boss I&a!"
-        
+    if victim has scoreboard tag {@id}:
+        # Tin nhắn death lấy từ options
+        broadcast formatted {@msg_death}
+
         # --- DỌN DẸP BOSS ---
-        Boss_Cleanup("zb1")
+        Boss_Cleanup({@id})
         
         # Drop vật phẩm
         chance of 90%:
@@ -158,14 +186,14 @@ on death of zombie:
 # 7. CÁC SỰ KIỆN PHỤ KHÁC
 on projectile hit:
     if event-projectile's custom name is "tpball":
-        # Dùng biến {boss::zb1} thay vì {zb1}
-        teleport victim to {boss::zb1} 
+        # Dùng biến {boss::%{@id}%} thay vì {zb1}
+        teleport victim to {boss::%{@id}%} 
         play sound "block.iron_trapdoor.close" with volume 3 at the victim
-        set {boss::zb1}'s target to victim
+        set {boss::%{@id}%}'s target to victim
 
 on zombie transforming: 
-    if event-entity has scoreboard tag "zb1":
+    if event-entity has scoreboard tag {@id}:
         broadcast "&cZombie Boss I &abiến mất vào trong dòng nước mà không để lại dấu vết!"
-        Boss_Cleanup("zb1")
+        Boss_Cleanup({@id})
         delete event-entity
         cancel event
