@@ -33,12 +33,7 @@ on damage of zombie by player:
                 set {boss::zb1::cooldown1} to a random integer between 10 and 15
                 set {boss::zb1::cooldown2} to a random integer between 10 and 15
                 set {boss::zb1::br} to true
-
-                # --- CẬP NHẬT SCOREBOARD SERVER ---
-                execute console command "/scoreboard players add count_zb1 count_boss 1"
-                execute console command "/scoreboard players set count_zb1 boss_rampage 0"
-                execute console command "/scoreboard players set count_zb1 idle_time 0"
-                
+  
                 # --- TRANG BỊ ---
                 equip victim with chainmail helmet
                 equip victim with chainmail chestplate
@@ -51,9 +46,6 @@ every 20 tick:
     # Chỉ chạy khi Boss ZB1 đang tồn tại trong danh sách của Core
     if {active_bosses::*} contains "zb1":
         
-        # Giữ lại logic load chunk của bạn
-        execute console command "dochunkload"
-
         # --- GIẢM COOLDOWN ---
         Boss_ReduceCooldown("zb1", 1, 1)
         Boss_ReduceCooldown("zb1", 2, 1)
@@ -139,7 +131,8 @@ on damage of zombie:
 on death of player:
     if attacker has scoreboard tag "zb1":
         add 1 to {boss::zb1::rampage_count}
-        
+    
+        ForceLoadRemove({_zb1}, 33)
         # Hồi máu nếu boss yếu
         if attacker's health <= 12.5:
             heal attacker by 5
@@ -152,10 +145,6 @@ on death of zombie:
         
         # --- DỌN DẸP BOSS ---
         Boss_Cleanup("zb1")
-        
-        # Xóa các vùng forceload và scoreboard cũ
-        execute console command "forceload remove %{zb1.x}-33% %{zb1.z}-33% %{zb1.x}+33% %{zb1.z}+33%"
-        execute console command "/scoreboard players remove count_zb1 count_boss 1"
         
         # Drop vật phẩm
         chance of 90%:
@@ -174,14 +163,6 @@ on projectile hit:
 on zombie transforming: 
     if event-entity has scoreboard tag "zb1":
         broadcast "&cZombie Boss I &abiến mất vào trong dòng nước mà không để lại dấu vết!"
-        execute console command "forceload remove %{zb1.x}-33% %{zb1.z}-33% %{zb1.x}+33% %{zb1.z}+33%"
-        execute console command "/scoreboard players remove count_zb1 count_boss 1"
-        
         Boss_Cleanup("zb1")
-        
         delete event-entity
-        cancel event
-
-on vehicle enter:
-    if event-entity has scoreboard tag "zb1":
         cancel event
